@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { sendTextMessage } from '../services/whatsapp-send.js';
+import { processMessage } from '../services/whatsapp-concierge.js';
 
 export interface WhatsAppTextMessage {
   from: string;
@@ -48,8 +49,8 @@ export interface WhatsAppWebhookPayload {
 }
 
 async function handleTextMessage(message: WhatsAppTextMessage): Promise<void> {
-  console.log(`Text message from ${message.from}:`, message.text.body);
-  await sendTextMessage(message.from, 'Got it');
+  const reply = await processMessage(message.from, message.text.body);
+  await sendTextMessage(message.from, reply);
 }
 
 async function handleInteractiveMessage(message: WhatsAppInteractiveMessage): Promise<void> {
