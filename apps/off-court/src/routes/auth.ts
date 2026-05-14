@@ -3,6 +3,7 @@ import { db } from '../db/client.js';
 import { authSessions } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { sendOTP, verifyOTP } from '../services/auth.js';
+import { checkSystemHealth } from '../services/health-check.js';
 
 const router = Router();
 
@@ -49,6 +50,16 @@ router.post('/logout', async (req, res) => {
   const token = auth.slice(7);
   await db.delete(authSessions).where(eq(authSessions.token, token));
   res.json({ success: true });
+});
+
+router.get('/health/detailed', async (_req, res) => {
+  try {
+    const health = await checkSystemHealth();
+    res.json(health);
+  } catch (err) {
+    console.error('health check error:', err);
+    res.json({ api: true, database: false, redis: false, whatsapp: false });
+  }
 });
 
 export default router;
