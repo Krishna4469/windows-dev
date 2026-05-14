@@ -826,3 +826,28 @@ export const venueLocations = pgTable('venue_locations', {
   opening_hours: jsonb('opening_hours').notNull().default({}),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const arWaypoints = pgTable('ar_waypoints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  label: text('label').notNull(),
+  room_id: uuid('room_id').references(() => rooms.id),
+  floor_number: integer('floor_number').notNull().default(0),
+  x_position: numeric('x_position').notNull(),
+  y_position: numeric('y_position').notNull(),
+  z_position: numeric('z_position').notNull().default('0'),
+  waypoint_type: varchar('waypoint_type', { length: 32 }).notNull(),
+  connected_to: jsonb('connected_to').notNull().default([]),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const arNavigationSessions = pgTable('ar_navigation_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  member_id: uuid('member_id').notNull(),
+  from_waypoint_id: uuid('from_waypoint_id').notNull().references(() => arWaypoints.id),
+  to_waypoint_id: uuid('to_waypoint_id').notNull().references(() => arWaypoints.id),
+  started_at: timestamp('started_at').notNull().defaultNow(),
+  completed_at: timestamp('completed_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
