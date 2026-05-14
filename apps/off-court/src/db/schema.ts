@@ -636,3 +636,39 @@ export const sustainabilityTargets = pgTable('sustainability_targets', {
   period: varchar('period', { length: 16 }).notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const memberSegments = pgTable('member_segments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  segment_name: varchar('segment_name', { length: 32 }).notNull(),
+  criteria: jsonb('criteria').notNull().default({}),
+  member_count: integer('member_count').notNull().default(0),
+  last_computed_at: timestamp('last_computed_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const marketingCampaigns = pgTable('marketing_campaigns', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  campaign_name: text('campaign_name').notNull(),
+  segment_id: uuid('segment_id').references(() => memberSegments.id),
+  channel: varchar('channel', { length: 32 }).notNull(),
+  campaign_type: varchar('campaign_type', { length: 32 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('draft'),
+  scheduled_at: timestamp('scheduled_at'),
+  message_template: text('message_template').notNull(),
+  target_count: integer('target_count').notNull().default(0),
+  sent_count: integer('sent_count').notNull().default(0),
+  open_count: integer('open_count').notNull().default(0),
+  created_by: uuid('created_by').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const campaignLogs = pgTable('campaign_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campaign_id: uuid('campaign_id').notNull().references(() => marketingCampaigns.id),
+  member_id: uuid('member_id').notNull(),
+  status: varchar('status', { length: 32 }).notNull(),
+  sent_at: timestamp('sent_at').notNull(),
+  error_message: text('error_message'),
+});
