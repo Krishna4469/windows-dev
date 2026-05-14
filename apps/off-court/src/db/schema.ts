@@ -85,6 +85,21 @@ export const events = pgTable('events', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const eventRsvps = pgTable(
+  'event_rsvps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    event_id: uuid('event_id').notNull().references(() => events.id),
+    member_id: uuid('member_id').notNull(),
+    status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+    waitlist_position: integer('waitlist_position'),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqEventMember: unique().on(table.event_id, table.member_id),
+  }),
+);
+
 export const leaderboardEntries = pgTable(
   'leaderboard_entries',
   {

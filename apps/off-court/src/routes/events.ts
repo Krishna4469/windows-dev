@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { events } from '../db/schema.js';
+import { events, eventRsvps, members } from '../db/schema.js';
+import { sendTemplateMessage } from '../services/whatsapp-send.js';
 
 const router = Router();
 
@@ -124,6 +125,106 @@ router.delete('/:id', async (req: Request<{ id: string }>, res: Response): Promi
     return;
   }
   res.status(204).send();
+});
+
+router.post('/:id/rsvp', async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+  const { member_id } = req.body as { member_id: string };
+  if (!member_id) { res.status(400).json({ error: 'member_id required' }); return; }
+
+  const [event] = await db.select().from(events).where(eq(events.id, req.params.id));
+  if (!event) { res.status(404).json({ error: 'Event not found' }); return; }
+
+  const [existing] = await db
+    .select()
+    .from(eventRsvps)
+    .where(and(eq(eventRsvps.event_id, req.params.id), eq(eventRsvps.member_id, member_id)));
+  if (existing) { res.json(existing); return; }
+
+  const isFull = event.current_rsvp >= event.max_capacity;
+
+  if (!isFull) {
+    const [rsvp] = await db
+      .insert(eventRsvps)
+      .values({ event_id: req.params.id, member_id, status: 'confirmed' })
+      .returning();
+    await db
+      .update(events)
+      .set({ current_rsvp: sql`${events.current_rsvp} + 1` })
+      .where(eq(events.id, req.params.id));
+    res.status(201).json(rsvp);
+    return;
+  }
+
+  const [row] = await db
+    .select({ maxPos: sql<number>`coalesce(max(${eventRsvps.waitlist_position}), 0)` })
+    .from(eventRsvps)
+    .where(and(eq(eventRsvps.event_id, req.params.id), eq(eventRsvps.status, 'waitlist')));
+  const nextPos = (row?.maxPos ?? 0) + 1;
+
+  const [rsvp] = await db
+    .insert(eventRsvps)
+    .values({ event_id: req.params.id, member_id, status: 'waitlist', waitlist_position: nextPos })
+    .returning();
+  res.status(201).json(rsvp);
+});
+
+router.delete('/:id/rsvp', async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+  const { member_id } = req.body as { member_id: string };
+  if (!member_id) { res.status(400).json({ error: 'member_id required' }); return; }
+
+  const [existing] = await db
+    .select()
+    .from(eventRsvps)
+    .where(and(eq(eventRsvps.event_id, req.params.id), eq(eventRsvps.member_id, member_id)));
+  if (!existing) { res.status(404).json({ error: 'RSVP not found' }); return; }
+
+  await db
+    .delete(eventRsvps)
+    .where(and(eq(eventRsvps.event_id, req.params.id), eq(eventRsvps.member_id, member_id)));
+
+  if (existing.status === 'confirmed') {
+    const [firstWaitlist] = await db
+      .select()
+      .from(eventRsvps)
+      .where(and(eq(eventRsvps.event_id, req.params.id), eq(eventRsvps.status, 'waitlist')))
+      .orderBy(asc(eventRsvps.waitlist_position))
+      .limit(1);
+
+    if (firstWaitlist) {
+      await db
+        .update(eventRsvps)
+        .set({ status: 'confirmed', waitlist_position: null })
+        .where(eq(eventRsvps.id, firstWaitlist.id));
+
+      const [promotedMember] = await db
+        .select({ phone: members.phone })
+        .from(members)
+        .where(eq(members.id, firstWaitlist.member_id));
+
+      if (promotedMember) {
+        const [event] = await db.select({ title: events.title }).from(events).where(eq(events.id, req.params.id));
+        sendTemplateMessage(promotedMember.phone, 'event_invitation', 'en', [
+          { type: 'body', parameters: [{ type: 'text', text: event?.title ?? '' }] },
+        ]).catch(() => undefined);
+      }
+    } else {
+      await db
+        .update(events)
+        .set({ current_rsvp: sql`${events.current_rsvp} - 1` })
+        .where(eq(events.id, req.params.id));
+    }
+  }
+
+  res.status(204).send();
+});
+
+router.get('/:id/rsvps', async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+  const result = await db
+    .select()
+    .from(eventRsvps)
+    .where(eq(eventRsvps.event_id, req.params.id))
+    .orderBy(asc(eventRsvps.status), asc(eventRsvps.waitlist_position));
+  res.json(result);
 });
 
 export default router;

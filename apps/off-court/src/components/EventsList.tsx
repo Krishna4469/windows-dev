@@ -17,6 +17,17 @@ interface Event {
   created_at: string;
 }
 
+interface RsvpEntry {
+  id: string;
+  event_id: string;
+  member_id: string;
+  status: string;
+  waitlist_position: number | null;
+  created_at: string;
+}
+
+const DEMO_MEMBER_ID = 'placeholder-member-id';
+
 const TYPE_FILTERS = ['all', 'tournament', 'social', 'workshop', 'class'] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 
@@ -81,11 +92,42 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+function RsvpBadge({ rsvp }: { rsvp: RsvpEntry }) {
+  if (rsvp.status === 'confirmed') {
+    return (
+      <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: '#052E16', color: '#34D399' }}>
+        Confirmed
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: '#451A03', color: '#FCD34D' }}>
+      Waitlist #{rsvp.waitlist_position}
+    </span>
+  );
+}
+
 export function EventsList() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState<TypeFilter>('all');
-  const [rsvping, setRsvping] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+  const [rsvpMap, setRsvpMap] = useState<Record<string, RsvpEntry>>({});
+
+  const loadRsvps = (eventIds: string[]): void => {
+    Promise.all(
+      eventIds.map((id) =>
+        fetch(`/api/events/${id}/rsvps`)
+          .then((r) => r.json() as Promise<RsvpEntry[]>)
+          .then((rsvps) => ({ id, rsvp: rsvps.find((r) => r.member_id === DEMO_MEMBER_ID) }))
+          .catch(() => ({ id, rsvp: undefined })),
+      ),
+    ).then((results) => {
+      const map: Record<string, RsvpEntry> = {};
+      results.forEach(({ id, rsvp }) => { if (rsvp) map[id] = rsvp; });
+      setRsvpMap(map);
+    });
+  };
 
   const load = (type: TypeFilter): void => {
     setLoading(true);
@@ -95,6 +137,7 @@ export function EventsList() {
       .then((data) => {
         setEvents(data);
         setLoading(false);
+        loadRsvps(data.map((e) => e.id));
       })
       .catch(() => setLoading(false));
   };
@@ -103,19 +146,28 @@ export function EventsList() {
     load(activeType);
   }, [activeType]);
 
-  const handleRsvp = (eventId: string, currentRsvp: number, maxCapacity: number): void => {
-    if (currentRsvp >= maxCapacity) return;
-    setRsvping(eventId);
-    fetch(`/api/events/${eventId}`, {
-      method: 'PUT',
+  const handleRsvp = (eventId: string): void => {
+    setActing(eventId);
+    fetch(`/api/events/${eventId}/rsvp`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_rsvp: currentRsvp + 1 }),
+      body: JSON.stringify({ member_id: DEMO_MEMBER_ID }),
     })
-      .then((r) => {
-        if (r.ok) load(activeType);
-      })
+      .then((r) => { if (r.ok) load(activeType); })
       .catch(console.error)
-      .finally(() => setRsvping(null));
+      .finally(() => setActing(null));
+  };
+
+  const handleCancel = (eventId: string): void => {
+    setActing(eventId);
+    fetch(`/api/events/${eventId}/rsvp`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: DEMO_MEMBER_ID }),
+    })
+      .then((r) => { if (r.ok) load(activeType); })
+      .catch(console.error)
+      .finally(() => setActing(null));
   };
 
   return (
@@ -155,6 +207,8 @@ export function EventsList() {
           {events.map((event) => {
             const isFull = event.current_rsvp >= event.max_capacity;
             const isCancelled = event.status === 'cancelled';
+            const isActing = acting === event.id;
+            const myRsvp = rsvpMap[event.id];
             const emoji = SPORT_EMOJI[event.sport.toLowerCase()] ?? '🏅';
             const typeBg = TYPE_COLORS[event.event_type] ?? '#374151';
             return (
@@ -178,14 +232,31 @@ export function EventsList() {
                       <p className="mt-1 text-xs text-neutral-500 line-clamp-2">{event.description}</p>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleRsvp(event.id, event.current_rsvp, event.max_capacity)}
-                    disabled={isFull || isCancelled || rsvping === event.id}
-                    className="shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-                    style={{ backgroundColor: '#6B2737' }}
-                  >
-                    {rsvping === event.id ? '...' : isCancelled ? 'Cancelled' : isFull ? 'Full' : 'RSVP'}
-                  </button>
+
+                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    {myRsvp ? (
+                      <>
+                        <RsvpBadge rsvp={myRsvp} />
+                        <button
+                          onClick={() => handleCancel(event.id)}
+                          disabled={isActing}
+                          className="rounded-lg px-3 py-1 text-xs font-medium disabled:opacity-40"
+                          style={{ backgroundColor: '#3a1a1a', color: '#F87171' }}
+                        >
+                          {isActing ? '...' : 'Cancel'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => !isCancelled && handleRsvp(event.id)}
+                        disabled={isCancelled || isActing}
+                        className="rounded-lg px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                        style={{ backgroundColor: isFull ? '#374151' : '#6B2737' }}
+                      >
+                        {isActing ? '...' : isCancelled ? 'Cancelled' : isFull ? 'Waitlist' : 'RSVP'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <CapacityBar current={event.current_rsvp} max={event.max_capacity} />
               </li>
