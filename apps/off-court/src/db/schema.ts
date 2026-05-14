@@ -521,3 +521,30 @@ export const payrollLineItems = pgTable('payroll_line_items', {
   bank_account: text('bank_account').notNull(),
   ifsc_code: text('ifsc_code').notNull(),
 });
+
+export const complianceChecks = pgTable('compliance_checks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  check_type: varchar('check_type', { length: 64 }).notNull(),
+  check_name: text('check_name').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  issued_date: date('issued_date'),
+  expiry_date: date('expiry_date'),
+  issuing_authority: text('issuing_authority').notNull(),
+  document_url: text('document_url'),
+  notes: text('notes').notNull().default(''),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const ppmSchedules = pgTable('ppm_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  asset_name: text('asset_name').notNull(),
+  asset_type: varchar('asset_type', { length: 64 }).notNull(),
+  frequency_days: integer('frequency_days').notNull(),
+  last_done_at: date('last_done_at'),
+  next_due_at: date('next_due_at').notNull(),
+  assigned_to: uuid('assigned_to'),
+  status: varchar('status', { length: 32 }).notNull().default('scheduled'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

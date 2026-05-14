@@ -18,6 +18,7 @@ import cvRouter from "./routes/cv.js";
 import staffTrackingRouter from "./routes/staff-tracking.js";
 import financeRouter from "./routes/finance.js";
 import payrollRouter from "./routes/payroll.js";
+import complianceRouter from "./routes/compliance.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -52,6 +53,7 @@ app.use('/api/cv', cvRouter);
 app.use('/api/staff', staffTrackingRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/payroll', payrollRouter);
+app.use('/api/compliance', complianceRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
