@@ -107,7 +107,11 @@ function RsvpBadge({ rsvp }: { rsvp: RsvpEntry }) {
   );
 }
 
-export function EventsList() {
+interface EventsListProps {
+  onSelect?: (id: string) => void;
+}
+
+export function EventsList({ onSelect }: EventsListProps = {}) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState<TypeFilter>('all');
@@ -212,7 +216,12 @@ export function EventsList() {
             const emoji = SPORT_EMOJI[event.sport.toLowerCase()] ?? '🏅';
             const typeBg = TYPE_COLORS[event.event_type] ?? '#374151';
             return (
-              <li key={event.id} className="rounded-xl bg-[#242424] p-4">
+              <li
+                key={event.id}
+                className="rounded-xl bg-[#242424] p-4"
+                style={{ cursor: onSelect ? 'pointer' : 'default' }}
+                onClick={() => onSelect?.(event.id)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -238,7 +247,7 @@ export function EventsList() {
                       <>
                         <RsvpBadge rsvp={myRsvp} />
                         <button
-                          onClick={() => handleCancel(event.id)}
+                          onClick={(e) => { e.stopPropagation(); handleCancel(event.id); }}
                           disabled={isActing}
                           className="rounded-lg px-3 py-1 text-xs font-medium disabled:opacity-40"
                           style={{ backgroundColor: '#3a1a1a', color: '#F87171' }}
@@ -248,7 +257,7 @@ export function EventsList() {
                       </>
                     ) : (
                       <button
-                        onClick={() => !isCancelled && handleRsvp(event.id)}
+                        onClick={(e) => { e.stopPropagation(); if (!isCancelled) handleRsvp(event.id); }}
                         disabled={isCancelled || isActing}
                         className="rounded-lg px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
                         style={{ backgroundColor: isFull ? '#374151' : '#6B2737' }}

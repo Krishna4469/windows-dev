@@ -1,4 +1,6 @@
 import { Route, Switch, Link, useLocation } from "wouter";
+import { EventsPage } from "./components/EventsPage";
+import { EventDetail } from "./components/EventDetail";
 
 function Home() {
   return <div className="p-4 text-white">Home</div>;
@@ -10,10 +12,6 @@ function Book() {
 
 function Twin() {
   return <div className="p-4 text-white">Twin</div>;
-}
-
-function Events() {
-  return <div className="p-4 text-white">Events</div>;
 }
 
 function Profile() {
@@ -34,7 +32,10 @@ function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 flex border-t border-neutral-800 bg-[#1a1a1a]">
       {tabs.map(({ path, label, icon }) => {
-        const active = location === path;
+        const active =
+          path === "/"
+            ? location === "/"
+            : location === path || location.startsWith(path + "/");
         return (
           <Link
             key={path}
@@ -60,7 +61,8 @@ export function App() {
           <Route path="/" component={Home} />
           <Route path="/book" component={Book} />
           <Route path="/twin" component={Twin} />
-          <Route path="/events" component={Events} />
+          <Route path="/events/:id" component={EventDetail} />
+          <Route path="/events" component={EventsPage} />
           <Route path="/profile" component={Profile} />
         </Switch>
       </main>
