@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { cvSessions, cvEvents, cvAnalytics } from '../db/schema.js';
 import { generateAnalytics } from '../services/cv-analytics.js';
+import { cancelJob } from '../services/job-queue.js';
 
 const router = Router();
 
@@ -150,6 +151,13 @@ router.get('/sessions/:id/analytics', async (req: Request, res: Response): Promi
     .orderBy(desc(cvAnalytics.created_at));
 
   res.json({ session, analytics });
+});
+
+// DELETE /sessions/:id/delivery
+router.delete('/sessions/:id/delivery', (req: Request, res: Response): void => {
+  const { id } = req.params as { id: string };
+  cancelJob(`post-game:${id}`);
+  res.json({ cancelled: true });
 });
 
 // GET /members/:memberId/analytics

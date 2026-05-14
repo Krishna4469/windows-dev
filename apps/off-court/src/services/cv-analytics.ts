@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { cvEvents, cvSessions, cvAnalytics, members } from '../db/schema.js';
 import { sendPostGameHighlights } from './whatsapp-templates.js';
+import { schedulePostGameDelivery } from './post-game-delivery.js';
 import { classifyShot, generateSpiderChart } from './padel-cv.js';
 import {
   generateWagonWheel,
@@ -61,6 +62,9 @@ export async function generateAnalytics(sessionId: string): Promise<void> {
           totalRallies: typeof scorecard['balls_faced'] === 'number' ? scorecard['balls_faced'] : 0,
           highlightsUrl: analytics.highlights_url ?? null,
         });
+        schedulePostGameDelivery(sessionId, session.booking_id, member.phone, session.sport).catch(
+          (err: unknown) => console.error('schedulePostGameDelivery failed', sessionId, err),
+        );
       }
     }
 
@@ -127,6 +131,9 @@ export async function generateAnalytics(sessionId: string): Promise<void> {
         totalRallies,
         highlightsUrl: analytics.highlights_url ?? null,
       });
+      schedulePostGameDelivery(sessionId, session.booking_id, member.phone, session.sport).catch(
+        (err: unknown) => console.error('schedulePostGameDelivery failed', sessionId, err),
+      );
     }
   }
 }
