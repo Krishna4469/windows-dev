@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { io, type Socket } from 'socket.io-client';
+import IFCUpload from './IFCUpload.js';
 
+type ViewMode = 'svg' | 'ifc' | 'live';
 type Level = 'GF' | '1F';
 
 type RoomType =
@@ -43,12 +46,6 @@ const ACTION: Partial<Record<RoomType, string>> = {
 };
 
 // Ground Floor — 16 rooms
-// Layout rows (y-axis):
-//   y=5:   3 padel courts
-//   y=103: cricket court + café + reception
-//   y=221: changing rooms + pro shop + equipment
-//   y=299: lobby + first aid + toilets
-//   y=372: locker room + corridor
 const GF_ROOMS: Room[] = [
   { id: 'gf-pc1',      name: 'Padel Court 1', type: 'court',     capacity: 4,  x: 5,   y: 5,   w: 118, h: 90,  floor: 'GF' },
   { id: 'gf-pc2',      name: 'Padel Court 2', type: 'court',     capacity: 4,  x: 130, y: 5,   w: 118, h: 90,  floor: 'GF' },
@@ -69,13 +66,6 @@ const GF_ROOMS: Room[] = [
 ];
 
 // First Floor — 14 rooms
-// Layout rows:
-//   y=5:   yoga studios
-//   y=103: fitness studios
-//   y=201: treatment rooms
-//   y=284: co-working spaces
-//   y=357: kids + meditation
-//   y=430: rooftop lounge
 const FF_ROOMS: Room[] = [
   { id: '1f-yoga1',  name: 'Yoga Studio 1',    type: 'studio',    capacity: 20, x: 5,   y: 5,   w: 185, h: 90, floor: '1F' },
   { id: '1f-yoga2',  name: 'Yoga Studio 2',    type: 'studio',    capacity: 20, x: 198, y: 5,   w: 187, h: 90, floor: '1F' },
@@ -96,13 +86,12 @@ const FF_ROOMS: Room[] = [
 const GF_LEGEND: RoomType[] = ['court', 'cafe', 'reception', 'lobby', 'firstaid', 'changing'];
 const FF_LEGEND: RoomType[] = ['studio', 'wellness', 'cowork', 'kids', 'meditation', 'lounge'];
 
-// Splits a room name into 1 or 2 lines that fit within the rect width.
-// Uses font-size=10 with approx 6px/char.
+const COURTS = GF_ROOMS.filter((r) => r.type === 'court');
+
 function getLines(name: string, w: number): string[] {
   if (name.length * 6 <= w - 12) return [name];
   const words = name.split(' ');
   if (words.length < 2) return [name];
-  // Find split that makes halves most equal
   let best = 1;
   let bestDiff = Infinity;
   for (let i = 1; i < words.length; i++) {
@@ -219,7 +208,164 @@ function RoomSheet({ room, onClose }: { room: Room; onClose: () => void }) {
   );
 }
 
+type CourtStatus = 'available' | 'booked' | 'maintenance';
+
+interface CourtState {
+  id: string;
+  name: string;
+  status: CourtStatus;
+  occupancy: number;
+  capacity: number;
+}
+
+const STATUS_CFG: Record<CourtStatus, { bg: string; text: string; dot: string; label: string }> = {
+  available:   { bg: '#0F2A1A', text: '#4ADE80', dot: '#22C55E', label: 'Available' },
+  booked:      { bg: '#2A1E1A', text: '#FB923C', dot: '#F97316', label: 'Booked' },
+  maintenance: { bg: '#1A1A2A', text: '#A78BFA', dot: '#8B5CF6', label: 'Maintenance' },
+};
+
+function LiveView() {
+  const [courts, setCourts] = useState<CourtState[]>(() =>
+    COURTS.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: 'available' as CourtStatus,
+      occupancy: 0,
+      capacity: r.capacity,
+    })),
+  );
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const socket: Socket = io('http://localhost:3002', { transports: ['websocket'] });
+
+    socket.on('connect', () => setConnected(true));
+    socket.on('disconnect', () => setConnected(false));
+
+    socket.on('court:status', (data: { id: string; status: CourtStatus; occupancy: number }) => {
+      setCourts((prev) =>
+        prev.map((c) => (c.id === data.id ? { ...c, status: data.status, occupancy: data.occupancy } : c)),
+      );
+    });
+
+    return () => { socket.disconnect(); };
+  }, []);
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: connected ? '#22C55E' : '#6B7280' }}
+        />
+        <span className="text-xs" style={{ color: connected ? '#4ADE80' : '#6B7280' }}>
+          {connected ? 'Live · Socket.IO connected' : 'Connecting…'}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {courts.map((court) => {
+          const cfg = STATUS_CFG[court.status];
+          return (
+            <div
+              key={court.id}
+              className="rounded-xl px-4 py-3"
+              style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.dot}33` }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-white">{court.name}</span>
+                <span
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={{ backgroundColor: `${cfg.dot}22`, color: cfg.text }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cfg.dot }} />
+                  {cfg.label}
+                </span>
+              </div>
+              {court.capacity > 0 && (
+                <div className="mt-2">
+                  <div className="mb-1 flex justify-between text-xs" style={{ color: '#6B7280' }}>
+                    <span>Occupancy</span>
+                    <span>{court.occupancy} / {court.capacity}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: '#1C1C26' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${court.capacity > 0 ? (court.occupancy / court.capacity) * 100 : 0}%`,
+                        backgroundColor: cfg.dot,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-center text-xs" style={{ color: '#4B5563' }}>
+        Updates in real-time via Socket.IO · court:status events
+      </p>
+    </div>
+  );
+}
+
+interface IFCViewProps {
+  venueId: string;
+}
+
+function IFCView({ venueId }: IFCViewProps) {
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/ifc/uploads?venue_id=${encodeURIComponent(venueId)}`)
+      .then((r) => r.json())
+      .then((uploads: Array<{ upload_status: string }>) => {
+        const hasCompleted = uploads.some((u) => u.upload_status === 'completed');
+        if (!hasCompleted) return undefined;
+        return fetch(`/api/spatial/viewer-embed?venueId=${encodeURIComponent(venueId)}`)
+          .then((r) => r.json())
+          .then((data: { url: string }) => setEmbedUrl(data.url));
+      })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [venueId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-sm" style={{ color: '#6B7280' }}>
+        Checking IFC uploads…
+      </div>
+    );
+  }
+
+  if (embedUrl) {
+    return (
+      <div className="overflow-hidden rounded-xl" style={{ backgroundColor: '#0D0D12' }}>
+        <iframe
+          src={embedUrl}
+          title="Spatial OS 3D Viewer"
+          className="w-full"
+          style={{ height: 480, border: 'none' }}
+          allow="fullscreen"
+        />
+      </div>
+    );
+  }
+
+  return <IFCUpload />;
+}
+
+const VIEW_MODES: { key: ViewMode; label: string; sub: string }[] = [
+  { key: 'svg', label: 'SVG',  sub: 'Parametric' },
+  { key: 'ifc', label: 'IFC',  sub: '3D Twin' },
+  { key: 'live', label: 'Live', sub: 'Real-time' },
+];
+
 export function VenueTwin() {
+  const [viewMode, setViewMode] = useState<ViewMode>('svg');
   const [level, setLevel] = useState<Level>('GF');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
@@ -231,76 +377,106 @@ export function VenueTwin() {
     <div className="min-h-full px-4 py-6" style={{ backgroundColor: '#111118' }}>
       <h1 className="text-xl font-semibold text-white">Venue Twin</h1>
       <p className="mt-0.5 mb-5 text-xs" style={{ color: '#6B7280' }}>
-        Parametric floor plan · IFC upload coming soon
+        Parametric floor plan · IFC digital twin · Live court status
       </p>
 
-      {/* Level switcher */}
+      {/* View mode switcher */}
       <div className="mb-4 flex gap-1 rounded-xl p-1" style={{ backgroundColor: '#1C1C26' }}>
-        {(['GF', '1F'] as const).map((lv) => (
+        {VIEW_MODES.map(({ key, label, sub }) => (
           <button
-            key={lv}
-            onClick={() => { setLevel(lv); setSelectedRoom(null); }}
+            key={key}
+            onClick={() => { setViewMode(key); setSelectedRoom(null); }}
             className="flex flex-1 flex-col items-center rounded-lg py-2 transition-colors"
-            style={level === lv ? { backgroundColor: '#6B2737' } : {}}
+            style={viewMode === key ? { backgroundColor: '#6B2737' } : {}}
           >
             <span
               className="text-base font-bold leading-none"
-              style={{ color: level === lv ? '#fff' : '#6B7280' }}
+              style={{ color: viewMode === key ? '#fff' : '#6B7280' }}
             >
-              {lv}
+              {label}
             </span>
             <span
               className="mt-0.5 text-[10px]"
-              style={{ color: level === lv ? '#FFB3BE' : '#4B5563' }}
+              style={{ color: viewMode === key ? '#FFB3BE' : '#4B5563' }}
             >
-              {lv === 'GF' ? 'Ground Floor' : 'First Floor'}
+              {sub}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Floor plan SVG */}
-      <div className="overflow-hidden rounded-xl" style={{ backgroundColor: '#0D0D12' }}>
-        <svg viewBox={viewBox} width="100%" style={{ display: 'block' }}>
-          {rooms.map((room) => (
-            <RoomRect
-              key={room.id}
-              room={room}
-              selected={selectedRoom?.id === room.id}
-              onClick={() => setSelectedRoom(room)}
-            />
-          ))}
-        </svg>
-      </div>
+      {/* SVG mode */}
+      {viewMode === 'svg' && (
+        <>
+          {/* Level switcher */}
+          <div className="mb-4 flex gap-1 rounded-xl p-1" style={{ backgroundColor: '#16161E' }}>
+            {(['GF', '1F'] as const).map((lv) => (
+              <button
+                key={lv}
+                onClick={() => { setLevel(lv); setSelectedRoom(null); }}
+                className="flex flex-1 flex-col items-center rounded-lg py-2 transition-colors"
+                style={level === lv ? { backgroundColor: '#3A1520' } : {}}
+              >
+                <span
+                  className="text-base font-bold leading-none"
+                  style={{ color: level === lv ? '#fff' : '#6B7280' }}
+                >
+                  {lv}
+                </span>
+                <span
+                  className="mt-0.5 text-[10px]"
+                  style={{ color: level === lv ? '#FFB3BE' : '#4B5563' }}
+                >
+                  {lv === 'GF' ? 'Ground Floor' : 'First Floor'}
+                </span>
+              </button>
+            ))}
+          </div>
 
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {legend.map((type) => {
-          const cfg = TYPE_CFG[type];
-          return (
-            <span
-              key={type}
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: cfg.fill, color: cfg.text }}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: cfg.text }}
-              />
-              {cfg.label}
-            </span>
-          );
-        })}
-      </div>
+          <div className="overflow-hidden rounded-xl" style={{ backgroundColor: '#0D0D12' }}>
+            <svg viewBox={viewBox} width="100%" style={{ display: 'block' }}>
+              {rooms.map((room) => (
+                <RoomRect
+                  key={room.id}
+                  room={room}
+                  selected={selectedRoom?.id === room.id}
+                  onClick={() => setSelectedRoom(room)}
+                />
+              ))}
+            </svg>
+          </div>
 
-      {/* Tap hint */}
-      <p className="mt-3 text-center text-xs" style={{ color: '#4B5563' }}>
-        Tap any room to see details
-      </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {legend.map((type) => {
+              const cfg = TYPE_CFG[type];
+              return (
+                <span
+                  key={type}
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: cfg.fill, color: cfg.text }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cfg.text }} />
+                  {cfg.label}
+                </span>
+              );
+            })}
+          </div>
 
-      {selectedRoom && (
-        <RoomSheet room={selectedRoom} onClose={() => setSelectedRoom(null)} />
+          <p className="mt-3 text-center text-xs" style={{ color: '#4B5563' }}>
+            Tap any room to see details
+          </p>
+
+          {selectedRoom && (
+            <RoomSheet room={selectedRoom} onClose={() => setSelectedRoom(null)} />
+          )}
+        </>
       )}
+
+      {/* IFC mode */}
+      {viewMode === 'ifc' && <IFCView venueId="demo-venue" />}
+
+      {/* Live mode */}
+      {viewMode === 'live' && <LiveView />}
     </div>
   );
 }
