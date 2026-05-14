@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean, jsonb, date, time } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean, jsonb, date, time, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const members = pgTable('members', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -422,6 +422,37 @@ export const staffMovementEvents = pgTable('staff_movement_events', {
   zone_id: text('zone_id').notNull(),
   payload: jsonb('payload').notNull().default({}),
   timestamp: timestamp('timestamp').notNull(),
+});
+
+export const chartOfAccounts = pgTable('chart_of_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  account_code: varchar('account_code', { length: 32 }).notNull().unique(),
+  account_name: text('account_name').notNull(),
+  account_type: varchar('account_type', { length: 32 }).notNull(),
+  parent_account_id: uuid('parent_account_id').references((): AnyPgColumn => chartOfAccounts.id),
+  is_system: boolean('is_system').notNull().default(false),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const journalEntries = pgTable('journal_entries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  entry_date: date('entry_date').notNull(),
+  description: text('description').notNull(),
+  reference_type: varchar('reference_type', { length: 32 }).notNull(),
+  reference_id: uuid('reference_id'),
+  created_by: uuid('created_by').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const journalLines = pgTable('journal_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  journal_id: uuid('journal_id').notNull().references(() => journalEntries.id),
+  account_id: uuid('account_id').notNull().references(() => chartOfAccounts.id),
+  debit: numeric('debit').notNull().default('0'),
+  credit: numeric('credit').notNull().default('0'),
+  memo: text('memo'),
 });
 
 export const staffAnalytics = pgTable('staff_analytics', {
