@@ -1,21 +1,97 @@
+import { Suspense, Component } from "react";
+import type { ReactNode } from "react";
 import { Route, Switch, Link, useLocation } from "wouter";
 import { EventsPage } from "./components/EventsPage";
 import { EventDetail } from "./components/EventDetail";
 import { VenueTwin } from "./components/VenueTwin";
 import FinancialDashboard from "./components/FinancialDashboard";
 import GSTDashboard from "./components/GSTDashboard";
+import HomeScreen from "./components/HomeScreen";
+import BookingFlow from "./components/BookingFlow";
+import Profile from "./components/Profile";
 
-function Home() {
-  return <div className="p-4 text-white">Home</div>;
+function LoadingScreen() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      minHeight: '60vh',
+      background: '#0d0d0d',
+      gap: '1.5rem',
+    }}>
+      <style>{`
+        @keyframes oc-spin { to { transform: rotate(360deg); } }
+        @keyframes oc-pulse { 0%,100% { opacity:0.35; } 50% { opacity:1; } }
+      `}</style>
+      <div style={{
+        width: '3rem', height: '3rem', borderRadius: '50%',
+        border: '3px solid #2a1520', borderTopColor: '#6B2737',
+        animation: 'oc-spin 0.85s linear infinite',
+      }} />
+      <div style={{
+        fontSize: '0.875rem', fontWeight: 700, letterSpacing: '0.28em',
+        color: '#f5f5f5', fontFamily: 'system-ui, sans-serif',
+        animation: 'oc-pulse 2.2s ease-in-out infinite',
+      }}>
+        OFF COURT
+      </div>
+    </div>
+  );
 }
 
-function Book() {
-  return <div className="p-4 text-white">Book a Court</div>;
+interface EBState { error: Error | null }
+class ErrorBoundary extends Component<{ children: ReactNode }, EBState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', height: '100%', minHeight: '60vh',
+          background: '#0d0d0d', gap: '0.875rem', padding: '2rem',
+          textAlign: 'center', fontFamily: 'system-ui, sans-serif',
+        }}>
+          <div style={{ fontSize: '2.25rem' }}>⚠️</div>
+          <div style={{ color: '#f5f5f5', fontWeight: 600, fontSize: '1rem' }}>
+            Something went wrong
+          </div>
+          <div style={{ color: '#737373', fontSize: '0.78rem', maxWidth: '16rem', lineHeight: 1.55 }}>
+            {this.state.error.message}
+          </div>
+          <button
+            onClick={() => this.setState({ error: null })}
+            style={{
+              marginTop: '0.375rem', background: '#6B2737', color: '#fff',
+              border: 'none', borderRadius: '999px', padding: '0.625rem 1.75rem',
+              fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
-
-function Profile() {
-  return <div className="p-4 text-white">Profile</div>;
+function Guarded({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  );
 }
 
 const tabs = [
@@ -28,7 +104,6 @@ const tabs = [
 
 function BottomNav() {
   const [location] = useLocation();
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 flex border-t border-neutral-800 bg-[#1a1a1a]">
       {tabs.map(({ path, label, icon }) => {
@@ -58,14 +133,14 @@ export function App() {
     <div className="flex h-dvh max-w-md mx-auto flex-col bg-[#1a1a1a]">
       <main className="flex-1 overflow-y-auto pb-16">
         <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/book" component={Book} />
-          <Route path="/twin" component={VenueTwin} />
-          <Route path="/events/:id" component={EventDetail} />
-          <Route path="/events" component={EventsPage} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/finance">{() => <FinancialDashboard />}</Route>
-          <Route path="/gst">{() => <GSTDashboard venueId="demo-venue" />}</Route>
+          <Route path="/">{() => <Guarded><HomeScreen /></Guarded>}</Route>
+          <Route path="/book">{() => <Guarded><BookingFlow /></Guarded>}</Route>
+          <Route path="/twin">{() => <Guarded><VenueTwin /></Guarded>}</Route>
+          <Route path="/events/:id">{() => <Guarded><EventDetail /></Guarded>}</Route>
+          <Route path="/events">{() => <Guarded><EventsPage /></Guarded>}</Route>
+          <Route path="/profile">{() => <Guarded><Profile /></Guarded>}</Route>
+          <Route path="/finance">{() => <Guarded><FinancialDashboard /></Guarded>}</Route>
+          <Route path="/gst">{() => <Guarded><GSTDashboard venueId="demo-venue" /></Guarded>}</Route>
         </Switch>
       </main>
       <BottomNav />

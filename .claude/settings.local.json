@@ -5,7 +5,8 @@
       "Bash(pnpm *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(Get-ChildItem *)"
+      "Bash(Get-ChildItem *)",
+      "PowerShell(\\(Get-ChildItem -Path \"C:\\\\Users\\\\EDELLL\\\\platform\\\\apps\\\\off-court\\\\src\\\\services\\\\\" -File | Measure-Object\\).Count)"
     ]
   }
 }
