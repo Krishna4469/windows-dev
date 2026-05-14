@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import whatsappRouter from "./routes/whatsapp.js";
+import crewsRouter from "./routes/crews.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,6 +20,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use('/api/whatsapp', whatsappRouter);
+app.use('/api/crews', crewsRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
