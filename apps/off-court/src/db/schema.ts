@@ -809,3 +809,20 @@ export const authSessions = pgTable('auth_sessions', {
   expires_at: timestamp('expires_at').notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const venueLocations = pgTable('venue_locations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_name: text('venue_name').notNull(),
+  city: text('city').notNull(),
+  country: varchar('country', { length: 64 }).notNull().default('India'),
+  address: text('address').notNull(),
+  latitude: numeric('latitude').notNull(),
+  longitude: numeric('longitude').notNull(),
+  phone: varchar('phone', { length: 32 }),
+  whatsapp_number: varchar('whatsapp_number', { length: 32 }),
+  status: varchar('status', { length: 32 }).notNull().default('live'),
+  sports: jsonb('sports').notNull().default([]),
+  amenities: jsonb('amenities').notNull().default([]),
+  opening_hours: jsonb('opening_hours').notNull().default({}),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

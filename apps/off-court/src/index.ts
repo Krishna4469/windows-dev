@@ -31,6 +31,7 @@ import checkinRouter from "./routes/checkin.js";
 import displaysRouter from "./routes/displays.js";
 import ifcRouter from "./routes/ifc.js";
 import spatialRouter from "./routes/spatial.js";
+import venuesRouter from "./routes/venues.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -78,6 +79,7 @@ app.use('/api/checkin', checkinRouter);
 app.use('/api/displays', displaysRouter);
 app.use('/api/ifc', ifcRouter);
 app.use('/api/spatial', spatialRouter);
+app.use('/api/venues', venuesRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
