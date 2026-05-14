@@ -885,3 +885,31 @@ export const wellnessScores = pgTable('wellness_scores', {
   insights: jsonb('insights').notNull().default([]),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const marketplaceListings = pgTable('marketplace_listings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  seller_id: uuid('seller_id').notNull().references(() => members.id),
+  listing_type: varchar('listing_type', { length: 64 }).notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  sport: varchar('sport', { length: 64 }).notNull(),
+  price_credits: numeric('price_credits').notNull(),
+  price_inr: numeric('price_inr'),
+  duration_minutes: integer('duration_minutes'),
+  max_participants: integer('max_participants').notNull().default(1),
+  available_from: timestamp('available_from').notNull(),
+  available_until: timestamp('available_until'),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const marketplaceTransactions = pgTable('marketplace_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listing_id: uuid('listing_id').notNull().references(() => marketplaceListings.id),
+  buyer_id: uuid('buyer_id').notNull().references(() => members.id),
+  seller_id: uuid('seller_id').notNull(),
+  credits_paid: numeric('credits_paid').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

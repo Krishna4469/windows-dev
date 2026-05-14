@@ -34,6 +34,7 @@ import spatialRouter from "./routes/spatial.js";
 import venuesRouter from "./routes/venues.js";
 import arRouter from "./routes/ar.js";
 import healthRouter from "./routes/health.js";
+import marketplaceRouter from "./routes/marketplace.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -84,6 +85,7 @@ app.use('/api/spatial', spatialRouter);
 app.use('/api/venues', venuesRouter);
 app.use('/api/ar', arRouter);
 app.use('/api/health', healthRouter);
+app.use('/api/marketplace', marketplaceRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
