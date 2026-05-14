@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, varchar, timestamp, unique, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean } from 'drizzle-orm/pg-core';
 
 export const crews = pgTable('crews', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -48,5 +48,25 @@ export const crewMembers = pgTable(
   },
   (table) => ({
     uniqCrewMember: unique().on(table.crew_id, table.member_id),
+  }),
+);
+
+export const leaderboardEntries = pgTable(
+  'leaderboard_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue_id: uuid('venue_id').notNull(),
+    member_id: uuid('member_id').notNull(),
+    member_name: text('member_name').notNull(),
+    sport: varchar('sport', { length: 64 }).notNull(),
+    total_games: integer('total_games').notNull().default(0),
+    total_wins: integer('total_wins').notNull().default(0),
+    win_rate: numeric('win_rate'),
+    last_played: timestamp('last_played'),
+    opt_in: boolean('opt_in').notNull().default(false),
+    updated_at: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqVenueMemberSport: unique().on(table.venue_id, table.member_id, table.sport),
   }),
 );
