@@ -699,3 +699,20 @@ export const venueMetrics = pgTable('venue_metrics', {
   nps_score: numeric('nps_score'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const otpRequests = pgTable('otp_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  phone: varchar('phone', { length: 32 }).notNull(),
+  otp_code: varchar('otp_code', { length: 6 }).notNull(),
+  expires_at: timestamp('expires_at').notNull(),
+  verified: boolean('verified').notNull().default(false),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const authSessions = pgTable('auth_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  member_id: uuid('member_id').notNull().references(() => members.id),
+  token: text('token').notNull().unique(),
+  expires_at: timestamp('expires_at').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

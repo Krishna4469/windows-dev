@@ -24,6 +24,7 @@ import operationsRouter from "./routes/operations.js";
 import environmentRouter from "./routes/environment.js";
 import marketingRouter from "./routes/marketing.js";
 import franchiseRouter from "./routes/franchise.js";
+import authRouter from "./routes/auth.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,6 +65,7 @@ app.use('/api/ops', operationsRouter);
 app.use('/api/environment', environmentRouter);
 app.use('/api/marketing', marketingRouter);
 app.use('/api/franchise', franchiseRouter);
+app.use('/api/auth', authRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
