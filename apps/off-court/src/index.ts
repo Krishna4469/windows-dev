@@ -9,6 +9,7 @@ import leaderboardRouter from "./routes/leaderboard.js";
 import membersRouter from "./routes/members.js";
 import tournamentsRouter from "./routes/tournaments.js";
 import floorsRouter from "./routes/floors.js";
+import classesRouter from "./routes/classes.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -33,6 +34,7 @@ app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/members', membersRouter);
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/floors', floorsRouter);
+app.use('/api/classes', classesRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);

@@ -163,3 +163,36 @@ export const rooms = pgTable('rooms', {
   status: varchar('status', { length: 32 }).notNull().default('active'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const classes = pgTable('classes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').references(() => rooms.id),
+  instructor_id: uuid('instructor_id'),
+  title: text('title').notNull(),
+  description: text('description'),
+  class_type: varchar('class_type', { length: 32 }).notNull(),
+  duration_minutes: integer('duration_minutes').notNull().default(60),
+  max_capacity: integer('max_capacity').notNull().default(15),
+  current_bookings: integer('current_bookings').notNull().default(0),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  recurring: boolean('recurring').notNull().default(false),
+  recurrence_rule: text('recurrence_rule'),
+  credits_cost: numeric('credits_cost').notNull().default('10'),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const classBookings = pgTable(
+  'class_bookings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    class_id: uuid('class_id').notNull().references(() => classes.id),
+    member_id: uuid('member_id').notNull(),
+    status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+    booked_at: timestamp('booked_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqClassMember: unique().on(table.class_id, table.member_id),
+  }),
+);
