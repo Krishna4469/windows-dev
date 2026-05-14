@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { franchiseVenues, venueMetrics } from '../db/schema.js';
+import { generateInvestorReport, formatInvestorReportText } from '../services/investor-report.js';
 
 const router = Router();
 
@@ -293,5 +294,101 @@ router.get('/portfolio', async (req: Request, res: Response): Promise<void> => {
     best_performing_venue: bestVenue,
   });
 });
+
+// GET /venues/:id/investor-report?month&year
+router.get('/venues/:id/investor-report', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+  const now = new Date();
+  const month = parseInt(String(req.query['month'] ?? now.getMonth() + 1), 10);
+  const year  = parseInt(String(req.query['year']  ?? now.getFullYear()), 10);
+
+  if (isNaN(month) || month < 1 || month > 12) {
+    res.status(400).json({ error: 'month must be 1–12' });
+    return;
+  }
+  if (isNaN(year) || year < 2000 || year > 2100) {
+    res.status(400).json({ error: 'year must be a valid 4-digit year' });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: franchiseVenues.id })
+    .from(franchiseVenues)
+    .where(eq(franchiseVenues.id, id));
+
+  if (!existing) {
+    res.status(404).json({ error: 'Venue not found' });
+    return;
+  }
+
+  const report = await generateInvestorReport(id, month, year);
+  res.json(report);
+});
+
+const SETUP_COSTS = [
+  { item: 'Fit-out & Civil Works',        amount_inr: 3500000 },
+  { item: 'Sports Equipment & Courts',    amount_inr: 2000000 },
+  { item: 'Technology & POS Systems',     amount_inr:  800000 },
+  { item: 'Furniture & Fixtures',         amount_inr:  700000 },
+  { item: 'Working Capital Reserve',      amount_inr: 1000000 },
+  { item: 'Franchise Fee',                amount_inr:  500000 },
+];
+
+function buildMonthlyEbitda(): Array<{ month: number; ebitda: number; cumulative: number }> {
+  // Piecewise-linear key points [month, monthly_ebitda_inr]
+  const pts: [number, number][] = [
+    [0, -150000], [1, -100000], [2, -80000], [3, -50000], [4, -20000],
+    [5, 20000],   [6, 60000],   [7, 100000], [8, 140000], [9, 180000],
+    [10, 220000], [11, 260000], [12, 300000], [15, 350000], [18, 400000],
+    [21, 440000], [24, 480000], [27, 510000], [28, 530000], [30, 548000],
+    [33, 565000], [36, 580000],
+  ];
+
+  function lerp(m: number): number {
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1]!;
+      const [x1, y1] = pts[i]!;
+      if (m >= x0 && m <= x1) {
+        const t = (m - x0) / (x1 - x0);
+        return Math.round(y0 + t * (y1 - y0));
+      }
+    }
+    return 580000;
+  }
+
+  let cumulative = 0;
+  return Array.from({ length: 36 }, (_, i) => {
+    const month  = i + 1;
+    const ebitda = lerp(month);
+    cumulative  += ebitda;
+    return { month, ebitda, cumulative };
+  });
+}
+
+// GET /venues/:id/investment-model
+router.get('/venues/:id/investment-model', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+
+  const [existing] = await db
+    .select({ id: franchiseVenues.id })
+    .from(franchiseVenues)
+    .where(eq(franchiseVenues.id, id));
+
+  if (!existing) {
+    res.status(404).json({ error: 'Venue not found' });
+    return;
+  }
+
+  res.json({
+    venue_id:       id,
+    total_setup_cost_inr: 8500000,
+    payback_months:       28,
+    irr_pct:              34,
+    setup_costs:          SETUP_COSTS,
+    monthly_ebitda:       buildMonthlyEbitda(),
+  });
+});
+
+export { generateInvestorReport, formatInvestorReportText };
 
 export default router;
