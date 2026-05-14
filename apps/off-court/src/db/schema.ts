@@ -298,3 +298,27 @@ export const kidsZoneBookings = pgTable('kids_zone_bookings', {
   status: varchar('status', { length: 32 }).notNull().default('confirmed'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const crmLeads = pgTable('crm_leads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  name: text('name').notNull(),
+  phone: varchar('phone', { length: 32 }).notNull(),
+  email: text('email'),
+  source: varchar('source', { length: 32 }).notNull(),
+  sport_interest: varchar('sport_interest', { length: 64 }),
+  status: varchar('status', { length: 32 }).notNull().default('new'),
+  assigned_to: uuid('assigned_to'),
+  notes: text('notes'),
+  last_contacted_at: timestamp('last_contacted_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const crmLifecycleEvents = pgTable('crm_lifecycle_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  lead_id: uuid('lead_id').notNull().references(() => crmLeads.id),
+  event_type: varchar('event_type', { length: 32 }).notNull(),
+  description: text('description').notNull(),
+  created_by: uuid('created_by').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
