@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import whatsappRouter from "./routes/whatsapp.js";
 import crewsRouter from "./routes/crews.js";
+import eventsRouter from "./routes/events.js";
 import gamesRouter from "./routes/games.js";
 import leaderboardRouter from "./routes/leaderboard.js";
 import membersRouter from "./routes/members.js";
@@ -24,6 +25,7 @@ app.get("/health", (_req, res) => {
 
 app.use('/api/whatsapp', whatsappRouter);
 app.use('/api/crews', crewsRouter);
+app.use('/api/events', eventsRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/members', membersRouter);

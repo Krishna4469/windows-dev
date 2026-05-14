@@ -68,6 +68,23 @@ export const crewMembers = pgTable(
   }),
 );
 
+export const events = pgTable('events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id'),
+  title: text('title').notNull(),
+  description: text('description'),
+  event_type: varchar('event_type', { length: 32 }).notNull(),
+  sport: varchar('sport', { length: 64 }).notNull(),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  duration_minutes: integer('duration_minutes').notNull().default(60),
+  max_capacity: integer('max_capacity').notNull(),
+  current_rsvp: integer('current_rsvp').notNull().default(0),
+  status: varchar('status', { length: 32 }).notNull().default('upcoming'),
+  organiser_id: uuid('organiser_id').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const leaderboardEntries = pgTable(
   'leaderboard_entries',
   {
