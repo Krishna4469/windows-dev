@@ -397,6 +397,7 @@ export const cvAnalytics = pgTable('cv_analytics', {
   longest_rally: integer('longest_rally').notNull().default(0),
   win: boolean('win'),
   shot_breakdown: jsonb('shot_breakdown').notNull().default({}),
+  spider_chart: jsonb('spider_chart').notNull().default({}),
   heat_map: jsonb('heat_map').notNull().default({}),
   ball_speed_kmh: numeric('ball_speed_kmh'),
   highlights_url: text('highlights_url'),

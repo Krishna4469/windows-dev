@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { cvEvents, cvSessions, cvAnalytics, members } from '../db/schema.js';
 import { sendPostGameHighlights } from './whatsapp-templates.js';
+import { classifyShot, generateSpiderChart } from './padel-cv.js';
 
 export async function generateAnalytics(sessionId: string): Promise<void> {
   const [session] = await db
@@ -36,13 +37,15 @@ export async function generateAnalytics(sessionId: string): Promise<void> {
         break;
       case 'shot-detected': {
         const payload = event.payload as Record<string, unknown>;
-        const shotType = typeof payload['shot_type'] === 'string' ? payload['shot_type'] : 'unknown';
+        const shotType = classifyShot(payload);
         shotBreakdown[shotType] = (shotBreakdown[shotType] ?? 0) + 1;
         currentRallyShots++;
         break;
       }
     }
   }
+
+  const spiderChart = generateSpiderChart({ totalPoints, totalRallies, longestRally, shotBreakdown });
 
   const [analytics] = await db
     .insert(cvAnalytics)
@@ -54,6 +57,7 @@ export async function generateAnalytics(sessionId: string): Promise<void> {
       total_rallies: totalRallies,
       longest_rally: longestRally,
       shot_breakdown: shotBreakdown,
+      spider_chart: spiderChart,
       heat_map: {},
     })
     .returning();
