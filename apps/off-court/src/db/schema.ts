@@ -196,3 +196,40 @@ export const classBookings = pgTable(
     uniqClassMember: unique().on(table.class_id, table.member_id),
   }),
 );
+
+export const wellnessTreatments = pgTable('wellness_treatments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').references(() => rooms.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  treatment_type: varchar('treatment_type', { length: 32 }).notNull(),
+  duration_minutes: integer('duration_minutes').notNull(),
+  credits_cost: numeric('credits_cost').notNull(),
+  therapist_name: text('therapist_name'),
+  max_daily_slots: integer('max_daily_slots').notNull().default(8),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const wellnessBookings = pgTable('wellness_bookings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  treatment_id: uuid('treatment_id').notNull().references(() => wellnessTreatments.id),
+  member_id: uuid('member_id').notNull(),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+  credits_charged: numeric('credits_charged').notNull(),
+  notes: text('notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const wellnessCombos = pgTable('wellness_combos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  treatment_ids: jsonb('treatment_ids').notNull(),
+  total_credits: numeric('total_credits').notNull(),
+  discount_percent: numeric('discount_percent').notNull().default('0'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

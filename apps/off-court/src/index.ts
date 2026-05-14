@@ -10,6 +10,7 @@ import membersRouter from "./routes/members.js";
 import tournamentsRouter from "./routes/tournaments.js";
 import floorsRouter from "./routes/floors.js";
 import classesRouter from "./routes/classes.js";
+import wellnessRouter from "./routes/wellness.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -35,6 +36,7 @@ app.use('/api/members', membersRouter);
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/floors', floorsRouter);
 app.use('/api/classes', classesRouter);
+app.use('/api/wellness', wellnessRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
