@@ -766,6 +766,33 @@ export const displayContent = pgTable('display_content', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const ifcUploads = pgTable('ifc_uploads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  building_name: text('building_name').notNull(),
+  file_name: text('file_name').notNull(),
+  file_size_bytes: integer('file_size_bytes').notNull(),
+  upload_status: varchar('upload_status', { length: 32 }).notNull().default('pending'),
+  element_count: integer('element_count').notNull().default(0),
+  floor_count: integer('floor_count').notNull().default(0),
+  room_count: integer('room_count').notNull().default(0),
+  error_message: text('error_message'),
+  uploaded_by: uuid('uploaded_by').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const ifcElements = pgTable('ifc_elements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  upload_id: uuid('upload_id').notNull().references(() => ifcUploads.id),
+  global_id: varchar('global_id', { length: 64 }).notNull().unique(),
+  element_type: varchar('element_type', { length: 64 }).notNull(),
+  name: text('name').notNull(),
+  floor_id: uuid('floor_id').references(() => floors.id),
+  room_id: uuid('room_id').references(() => rooms.id),
+  properties: jsonb('properties').notNull().default({}),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const otpRequests = pgTable('otp_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   phone: varchar('phone', { length: 32 }).notNull(),

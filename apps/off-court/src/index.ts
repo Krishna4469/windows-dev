@@ -29,6 +29,7 @@ import authRouter from "./routes/auth.js";
 import oauthRouter from "./routes/oauth.js";
 import checkinRouter from "./routes/checkin.js";
 import displaysRouter from "./routes/displays.js";
+import ifcRouter from "./routes/ifc.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -74,6 +75,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/auth', oauthRouter);
 app.use('/api/checkin', checkinRouter);
 app.use('/api/displays', displaysRouter);
+app.use('/api/ifc', ifcRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
