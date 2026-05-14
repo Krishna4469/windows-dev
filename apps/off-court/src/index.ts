@@ -17,6 +17,7 @@ import crmRouter from "./routes/crm.js";
 import cvRouter from "./routes/cv.js";
 import staffTrackingRouter from "./routes/staff-tracking.js";
 import financeRouter from "./routes/finance.js";
+import payrollRouter from "./routes/payroll.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -50,6 +51,7 @@ app.use('/api/crm', crmRouter);
 app.use('/api/cv', cvRouter);
 app.use('/api/staff', staffTrackingRouter);
 app.use('/api/finance', financeRouter);
+app.use('/api/payroll', payrollRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);

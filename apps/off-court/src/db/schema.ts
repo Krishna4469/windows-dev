@@ -467,3 +467,57 @@ export const staffAnalytics = pgTable('staff_analytics', {
   peak_activity_hour: integer('peak_activity_hour'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const staffMembers = pgTable('staff_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  name: text('name').notNull(),
+  phone: varchar('phone', { length: 32 }).notNull(),
+  role: varchar('role', { length: 64 }).notNull(),
+  base_salary_inr: numeric('base_salary_inr').notNull(),
+  pf_applicable: boolean('pf_applicable').notNull().default(true),
+  esic_applicable: boolean('esic_applicable').notNull().default(false),
+  bank_account: text('bank_account'),
+  ifsc_code: text('ifsc_code'),
+  joined_at: date('joined_at').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const attendanceRecords = pgTable('attendance_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  staff_id: uuid('staff_id').notNull().references(() => staffMembers.id),
+  date: date('date').notNull(),
+  check_in: timestamp('check_in'),
+  check_out: timestamp('check_out'),
+  hours_worked: numeric('hours_worked').notNull().default('0'),
+  status: varchar('status', { length: 32 }).notNull().default('present'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const payrollRuns = pgTable('payroll_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  month: integer('month').notNull(),
+  year: integer('year').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('draft'),
+  total_gross_inr: numeric('total_gross_inr').notNull(),
+  total_deductions_inr: numeric('total_deductions_inr').notNull(),
+  total_net_inr: numeric('total_net_inr').notNull(),
+  processed_at: timestamp('processed_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const payrollLineItems = pgTable('payroll_line_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  payroll_run_id: uuid('payroll_run_id').notNull().references(() => payrollRuns.id),
+  staff_id: uuid('staff_id').notNull().references(() => staffMembers.id),
+  days_worked: integer('days_worked').notNull(),
+  gross_salary: numeric('gross_salary').notNull(),
+  pf_deduction: numeric('pf_deduction').notNull(),
+  esic_deduction: numeric('esic_deduction').notNull(),
+  tds_deduction: numeric('tds_deduction').notNull(),
+  net_salary: numeric('net_salary').notNull(),
+  bank_account: text('bank_account').notNull(),
+  ifsc_code: text('ifsc_code').notNull(),
+});
