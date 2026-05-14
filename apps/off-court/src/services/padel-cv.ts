@@ -17,21 +17,78 @@ export function calculateHomography(_courtPoints: number[][]): number[][] {
   ];
 }
 
+function pointToSegmentDistance(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function minDistanceToBoundary(
+  point: { x: number; y: number },
+  boundary: Array<{ x: number; y: number }>,
+): number {
+  let min = Infinity;
+  const n = boundary.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const pi = boundary[i]!;
+    const pj = boundary[j]!;
+    const d = pointToSegmentDistance(point.x, point.y, pj.x, pj.y, pi.x, pi.y);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
 export function detectLineCall(
   ballPosition: { x: number; y: number },
-  courtBoundary: number[][],
+  courtBoundary: Array<{ x: number; y: number }>,
 ): boolean {
   const { x, y } = ballPosition;
   let inside = false;
   const n = courtBoundary.length;
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const [xi = 0, yi = 0] = courtBoundary[i] ?? [];
-    const [xj = 0, yj = 0] = courtBoundary[j] ?? [];
-    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+    const pi = courtBoundary[i]!;
+    const pj = courtBoundary[j]!;
+    if ((pi.y > y) !== (pj.y > y) && x < ((pj.x - pi.x) * (y - pi.y)) / (pj.y - pi.y) + pi.x) {
       inside = !inside;
     }
   }
   return inside;
+}
+
+export function isNearLine(
+  ballPosition: { x: number; y: number },
+  courtBoundary: Array<{ x: number; y: number }>,
+  thresholdPx: number,
+): boolean {
+  return minDistanceToBoundary(ballPosition, courtBoundary) <= thresholdPx;
+}
+
+const LET_THRESHOLD_PX = 5;
+
+export function generateLineCallResult(
+  ballPosition: { x: number; y: number },
+  courtBoundary: Array<{ x: number; y: number }>,
+): { call: 'in-bound' | 'out' | 'let'; confidence: number; distanceFromLine: number } {
+  const inside = detectLineCall(ballPosition, courtBoundary);
+  const distanceFromLine = minDistanceToBoundary(ballPosition, courtBoundary);
+  const nearLine = isNearLine(ballPosition, courtBoundary, LET_THRESHOLD_PX);
+
+  const call = nearLine ? 'let' : inside ? 'in-bound' : 'out';
+  const rawConfidence = nearLine
+    ? 0.55 + Math.max(0, (LET_THRESHOLD_PX - distanceFromLine) / (LET_THRESHOLD_PX * 10))
+    : Math.min(0.99, 0.75 + distanceFromLine / 200);
+
+  return { call, confidence: Math.round(rawConfidence * 100) / 100, distanceFromLine };
 }
 
 interface SpiderAnalytics {
