@@ -5,6 +5,7 @@
   "scripts": {},
   "packageManager": "pnpm@11.1.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": ["esbuild"],
+    "ignoredBuiltDependencies": ["dtrace-provider"]
   }
 }
