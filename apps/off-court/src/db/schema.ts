@@ -362,3 +362,43 @@ export const sponsorActivations = pgTable('sponsor_activations', {
   completed: boolean('completed').notNull().default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const cvSessions = pgTable('cv_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').notNull(),
+  booking_id: uuid('booking_id'),
+  sport: varchar('sport', { length: 64 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  started_at: timestamp('started_at').notNull(),
+  ended_at: timestamp('ended_at'),
+  camera_count: integer('camera_count').notNull().default(1),
+  jetson_device_id: text('jetson_device_id').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const cvEvents = pgTable('cv_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  session_id: uuid('session_id').notNull().references(() => cvSessions.id),
+  event_type: varchar('event_type', { length: 64 }).notNull(),
+  payload: jsonb('payload').notNull().default({}),
+  confidence: numeric('confidence'),
+  timestamp: timestamp('timestamp').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const cvAnalytics = pgTable('cv_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  session_id: uuid('session_id').notNull().references(() => cvSessions.id),
+  member_id: uuid('member_id'),
+  sport: varchar('sport', { length: 64 }).notNull(),
+  total_points: integer('total_points').notNull().default(0),
+  total_rallies: integer('total_rallies').notNull().default(0),
+  longest_rally: integer('longest_rally').notNull().default(0),
+  win: boolean('win'),
+  shot_breakdown: jsonb('shot_breakdown').notNull().default({}),
+  heat_map: jsonb('heat_map').notNull().default({}),
+  ball_speed_kmh: numeric('ball_speed_kmh'),
+  highlights_url: text('highlights_url'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

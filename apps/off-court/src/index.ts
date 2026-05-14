@@ -14,6 +14,7 @@ import wellnessRouter from "./routes/wellness.js";
 import proshopRouter from "./routes/proshop.js";
 import { coworkRouter, kidsRouter } from "./routes/cowork.js";
 import crmRouter from "./routes/crm.js";
+import cvRouter from "./routes/cv.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -44,6 +45,7 @@ app.use('/api/proshop', proshopRouter);
 app.use('/api/cowork', coworkRouter);
 app.use('/api/kids', kidsRouter);
 app.use('/api/crm', crmRouter);
+app.use('/api/cv', cvRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);

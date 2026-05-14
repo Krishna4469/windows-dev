@@ -114,3 +114,21 @@ export async function sendWelcomeMember(to: string, memberName: string): Promise
   ];
   await sendTemplateMessage(to, TEMPLATES.welcome_member.name, TEMPLATES.welcome_member.language, components);
 }
+
+export async function sendPostGameHighlights(
+  to: string,
+  details: { sport: string; totalPoints: number; totalRallies: number; highlightsUrl: string | null },
+): Promise<void> {
+  const components: TemplateComponent[] = [
+    {
+      type: 'body',
+      parameters: [
+        { type: 'text', text: details.sport },
+        { type: 'text', text: String(details.totalPoints) },
+        { type: 'text', text: String(details.totalRallies) },
+        { type: 'text', text: details.highlightsUrl ?? 'N/A' },
+      ],
+    },
+  ];
+  await sendTemplateMessage(to, TEMPLATES.post_game_highlights.name, TEMPLATES.post_game_highlights.language, components);
+}
