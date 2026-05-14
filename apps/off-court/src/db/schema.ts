@@ -233,3 +233,38 @@ export const wellnessCombos = pgTable('wellness_combos', {
   discount_percent: numeric('discount_percent').notNull().default('0'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const proShopItems = pgTable('pro_shop_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 32 }).notNull(),
+  brand: text('brand').notNull(),
+  price_credits: numeric('price_credits').notNull(),
+  price_inr: numeric('price_inr').notNull(),
+  stock_quantity: integer('stock_quantity').notNull().default(0),
+  image_url: text('image_url'),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const proShopOrders = pgTable('pro_shop_orders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  member_id: uuid('member_id').notNull(),
+  item_id: uuid('item_id').notNull().references(() => proShopItems.id),
+  quantity: integer('quantity').notNull().default(1),
+  credits_charged: numeric('credits_charged').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const csrContributions = pgTable('csr_contributions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  member_id: uuid('member_id').notNull(),
+  amount_credits: numeric('amount_credits').notNull(),
+  cause: text('cause').notNull(),
+  contributed_at: timestamp('contributed_at').defaultNow().notNull(),
+});

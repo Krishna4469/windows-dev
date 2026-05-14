@@ -11,6 +11,7 @@ import tournamentsRouter from "./routes/tournaments.js";
 import floorsRouter from "./routes/floors.js";
 import classesRouter from "./routes/classes.js";
 import wellnessRouter from "./routes/wellness.js";
+import proshopRouter from "./routes/proshop.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -37,6 +38,7 @@ app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/floors', floorsRouter);
 app.use('/api/classes', classesRouter);
 app.use('/api/wellness', wellnessRouter);
+app.use('/api/proshop', proshopRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
