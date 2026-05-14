@@ -548,3 +548,35 @@ export const ppmSchedules = pgTable('ppm_schedules', {
   status: varchar('status', { length: 32 }).notNull().default('scheduled'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const iotSensors = pgTable('iot_sensors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id'),
+  sensor_type: varchar('sensor_type', { length: 32 }).notNull(),
+  location_label: text('location_label').notNull(),
+  device_id: text('device_id').notNull().unique(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const sensorReadings = pgTable('sensor_readings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sensor_id: uuid('sensor_id').notNull().references(() => iotSensors.id),
+  value: numeric('value').notNull(),
+  unit: varchar('unit', { length: 32 }).notNull(),
+  recorded_at: timestamp('recorded_at').notNull(),
+  is_alert: boolean('is_alert').notNull().default(false),
+});
+
+export const facilityAlerts = pgTable('facility_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  sensor_id: uuid('sensor_id'),
+  alert_type: varchar('alert_type', { length: 64 }).notNull(),
+  severity: varchar('severity', { length: 32 }).notNull(),
+  message: text('message').notNull(),
+  acknowledged: boolean('acknowledged').notNull().default(false),
+  acknowledged_by: uuid('acknowledged_by'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
