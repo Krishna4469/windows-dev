@@ -342,6 +342,28 @@ function IFCView({ venueId }: IFCViewProps) {
   }
 
   if (embedUrl) {
+    if (embedUrl.includes('localhost')) {
+      return (
+        <div
+          className="flex flex-col items-center justify-center rounded-xl px-6 py-14"
+          style={{ backgroundColor: '#0D0D12', minHeight: 480 }}
+        >
+          <p className="mb-6 text-base font-semibold text-white">
+            3D Viewer available on live server
+          </p>
+          <div
+            className="w-full max-w-sm rounded-xl px-5 py-4"
+            style={{ backgroundColor: '#3A1520', borderLeft: '4px solid #6B2737' }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: '#FFB3BE' }}>
+              This feature requires the production environment. The Spatial OS 3D
+              viewer cannot be embedded when running on localhost.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="overflow-hidden rounded-xl" style={{ backgroundColor: '#0D0D12' }}>
         <iframe
