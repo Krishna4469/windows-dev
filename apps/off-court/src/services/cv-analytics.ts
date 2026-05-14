@@ -3,6 +3,11 @@ import { db } from '../db/client.js';
 import { cvEvents, cvSessions, cvAnalytics, members } from '../db/schema.js';
 import { sendPostGameHighlights } from './whatsapp-templates.js';
 import { classifyShot, generateSpiderChart } from './padel-cv.js';
+import {
+  generateWagonWheel,
+  generatePitchMap,
+  generateCricketScorecard,
+} from './cricket-cv.js';
 
 export async function generateAnalytics(sessionId: string): Promise<void> {
   const [session] = await db
@@ -16,6 +21,51 @@ export async function generateAnalytics(sessionId: string): Promise<void> {
     .select()
     .from(cvEvents)
     .where(eq(cvEvents.session_id, sessionId));
+
+  if (session.sport === 'cricket') {
+    const allEvents = events as unknown as Array<Record<string, unknown>>;
+    const shotEvents = allEvents.filter((e) => e['event_type'] === 'shot-detected');
+    const deliveryEvents = allEvents.filter((e) => e['event_type'] === 'delivery-bowled');
+
+    const wagonWheel = generateWagonWheel(shotEvents);
+    const pitchMap = generatePitchMap(deliveryEvents);
+    const scorecard = generateCricketScorecard(sessionId, allEvents);
+
+    const [analytics] = await db
+      .insert(cvAnalytics)
+      .values({
+        session_id: sessionId,
+        member_id: session.booking_id ?? null,
+        sport: session.sport,
+        total_points: typeof scorecard['total_runs'] === 'number' ? scorecard['total_runs'] : 0,
+        total_rallies: typeof scorecard['balls_faced'] === 'number' ? scorecard['balls_faced'] : 0,
+        longest_rally: 0,
+        shot_breakdown: scorecard,
+        spider_chart: {},
+        heat_map: { wagon_wheel: wagonWheel, pitch_map: pitchMap },
+      })
+      .returning();
+
+    if (!analytics) return;
+
+    if (session.booking_id) {
+      const [member] = await db
+        .select({ phone: members.phone, name: members.name })
+        .from(members)
+        .where(eq(members.id, session.booking_id));
+
+      if (member) {
+        await sendPostGameHighlights(member.phone, {
+          sport: session.sport,
+          totalPoints: typeof scorecard['total_runs'] === 'number' ? scorecard['total_runs'] : 0,
+          totalRallies: typeof scorecard['balls_faced'] === 'number' ? scorecard['balls_faced'] : 0,
+          highlightsUrl: analytics.highlights_url ?? null,
+        });
+      }
+    }
+
+    return;
+  }
 
   let totalPoints = 0;
   let totalRallies = 0;
