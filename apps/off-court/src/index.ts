@@ -33,6 +33,7 @@ import ifcRouter from "./routes/ifc.js";
 import spatialRouter from "./routes/spatial.js";
 import venuesRouter from "./routes/venues.js";
 import arRouter from "./routes/ar.js";
+import healthRouter from "./routes/health.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -82,6 +83,7 @@ app.use('/api/ifc', ifcRouter);
 app.use('/api/spatial', spatialRouter);
 app.use('/api/venues', venuesRouter);
 app.use('/api/ar', arRouter);
+app.use('/api/health', healthRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);

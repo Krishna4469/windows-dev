@@ -851,3 +851,37 @@ export const arNavigationSessions = pgTable('ar_navigation_sessions', {
   completed_at: timestamp('completed_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const healthProfiles = pgTable('health_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  member_id: uuid('member_id').notNull().references(() => members.id),
+  age: integer('age'),
+  weight_kg: numeric('weight_kg'),
+  height_cm: numeric('height_cm'),
+  fitness_level: varchar('fitness_level', { length: 32 }).notNull().default('beginner'),
+  health_goals: jsonb('health_goals').notNull().default([]),
+  medical_notes: text('medical_notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const healthMetrics = pgTable('health_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  member_id: uuid('member_id').notNull(),
+  metric_type: varchar('metric_type', { length: 64 }).notNull(),
+  value: numeric('value').notNull(),
+  recorded_at: timestamp('recorded_at').notNull(),
+  source: varchar('source', { length: 32 }).notNull().default('manual'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const wellnessScores = pgTable('wellness_scores', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  member_id: uuid('member_id').notNull(),
+  score_date: date('score_date').notNull(),
+  activity_score: integer('activity_score').notNull().default(0),
+  recovery_score: integer('recovery_score').notNull().default(0),
+  consistency_score: integer('consistency_score').notNull().default(0),
+  overall_score: integer('overall_score').notNull().default(0),
+  insights: jsonb('insights').notNull().default([]),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
