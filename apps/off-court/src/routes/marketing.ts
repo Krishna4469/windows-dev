@@ -3,6 +3,8 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { memberSegments, marketingCampaigns, campaignLogs, members } from '../db/schema.js';
 import { suggestCampaigns, refineCampaignMessage } from '../services/campaign-claude.js';
+import { scheduleDailyCampaigns } from '../services/auto-campaigns.js';
+import { generateRailCameraContent } from '../services/rail-camera.js';
 
 const router = Router();
 
@@ -267,6 +269,31 @@ router.get('/campaigns/:id/logs', async (req: Request, res: Response): Promise<v
     .orderBy(desc(campaignLogs.sent_at));
 
   res.json(logs);
+});
+
+// ── Auto-campaigns ────────────────────────────────────────────────────────────
+
+// POST /auto-campaigns/trigger
+router.post('/auto-campaigns/trigger', async (req: Request, res: Response): Promise<void> => {
+  const { venue_id } = req.body as { venue_id?: string };
+
+  if (!venue_id) {
+    res.status(400).json({ error: 'venue_id is required' });
+    return;
+  }
+
+  scheduleDailyCampaigns(venue_id);
+  res.status(202).json({ message: 'Daily campaigns triggered', venue_id });
+});
+
+// ── Rail camera ───────────────────────────────────────────────────────────────
+
+// POST /rail-camera/:sessionId
+router.post('/rail-camera/:sessionId', async (req: Request, res: Response): Promise<void> => {
+  const { sessionId } = req.params as { sessionId: string };
+
+  const content = await generateRailCameraContent(sessionId);
+  res.json(content);
 });
 
 export default router;
