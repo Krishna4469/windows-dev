@@ -403,3 +403,36 @@ export const cvAnalytics = pgTable('cv_analytics', {
   highlights_url: text('highlights_url'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const staffMovementSessions = pgTable('staff_movement_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  staff_id: uuid('staff_id').notNull(),
+  zone_id: text('zone_id').notNull(),
+  started_at: timestamp('started_at').notNull(),
+  ended_at: timestamp('ended_at'),
+  device_id: text('device_id').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const staffMovementEvents = pgTable('staff_movement_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  session_id: uuid('session_id').notNull().references(() => staffMovementSessions.id),
+  event_type: varchar('event_type', { length: 32 }).notNull(),
+  zone_id: text('zone_id').notNull(),
+  payload: jsonb('payload').notNull().default({}),
+  timestamp: timestamp('timestamp').notNull(),
+});
+
+export const staffAnalytics = pgTable('staff_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  staff_id: uuid('staff_id').notNull(),
+  date: date('date').notNull(),
+  zones_covered: integer('zones_covered').notNull().default(0),
+  total_distance_m: numeric('total_distance_m').notNull().default('0'),
+  idle_time_minutes: integer('idle_time_minutes').notNull().default(0),
+  task_completion_rate: numeric('task_completion_rate'),
+  peak_activity_hour: integer('peak_activity_hour'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
