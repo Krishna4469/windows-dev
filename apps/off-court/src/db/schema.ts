@@ -744,6 +744,28 @@ export const staffFaceProfiles = pgTable('staff_face_profiles', {
   is_active: boolean('is_active').notNull().default(true),
 });
 
+export const displayScreens = pgTable('display_screens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  screen_name: text('screen_name').notNull(),
+  location_label: text('location_label').notNull(),
+  screen_type: varchar('screen_type', { length: 32 }).notNull(),
+  device_id: text('device_id').notNull().unique(),
+  current_content_id: uuid('current_content_id'),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const displayContent = pgTable('display_content', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  content_type: varchar('content_type', { length: 32 }).notNull(),
+  content_data: jsonb('content_data').notNull(),
+  scheduled_at: timestamp('scheduled_at'),
+  expires_at: timestamp('expires_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const otpRequests = pgTable('otp_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   phone: varchar('phone', { length: 32 }).notNull(),
