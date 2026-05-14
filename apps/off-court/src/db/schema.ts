@@ -1,4 +1,21 @@
-import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean, jsonb } from 'drizzle-orm/pg-core';
+
+export const members = pgTable('members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  phone: varchar('phone', { length: 32 }).notNull().unique(),
+  name: text('name').notNull(),
+  email: text('email'),
+  credit_balance: numeric('credit_balance').notNull().default('0'),
+  tier: varchar('tier', { length: 32 }).notNull().default('Explorer'),
+  segment: varchar('segment', { length: 32 }).notNull().default('active'),
+  days_since_last_visit: integer('days_since_last_visit').notNull().default(0),
+  referral_code: text('referral_code').unique(),
+  referred_by_id: uuid('referred_by_id'),
+  whatsapp_opt_in: jsonb('whatsapp_opt_in').notNull().default({ booking: true, analytics: true, events: true, promotions: false }),
+  preferences: jsonb('preferences').notNull().default({}),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
 
 export const crews = pgTable('crews', {
   id: uuid('id').primaryKey().defaultRandom(),

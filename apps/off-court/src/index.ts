@@ -5,6 +5,7 @@ import whatsappRouter from "./routes/whatsapp.js";
 import crewsRouter from "./routes/crews.js";
 import gamesRouter from "./routes/games.js";
 import leaderboardRouter from "./routes/leaderboard.js";
+import membersRouter from "./routes/members.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -25,6 +26,7 @@ app.use('/api/whatsapp', whatsappRouter);
 app.use('/api/crews', crewsRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/members', membersRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
