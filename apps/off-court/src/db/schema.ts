@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, varchar, timestamp, unique, integer, numeric, boolean, jsonb, date, time } from 'drizzle-orm/pg-core';
 
 export const members = pgTable('members', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -267,4 +267,34 @@ export const csrContributions = pgTable('csr_contributions', {
   amount_credits: numeric('amount_credits').notNull(),
   cause: text('cause').notNull(),
   contributed_at: timestamp('contributed_at').defaultNow().notNull(),
+});
+
+export const coworkBookings = pgTable('cowork_bookings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').notNull().references(() => rooms.id),
+  member_id: uuid('member_id').notNull(),
+  date: date('date').notNull(),
+  start_time: time('start_time').notNull(),
+  end_time: time('end_time').notNull(),
+  duration_hours: numeric('duration_hours').notNull(),
+  credits_charged: numeric('credits_charged').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+  notes: text('notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const kidsZoneBookings = pgTable('kids_zone_bookings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').notNull().references(() => rooms.id),
+  member_id: uuid('member_id').notNull(),
+  child_name: text('child_name').notNull(),
+  child_age: integer('child_age').notNull(),
+  activity_type: varchar('activity_type', { length: 32 }).notNull(),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  duration_minutes: integer('duration_minutes').notNull().default(60),
+  credits_charged: numeric('credits_charged').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
 });
