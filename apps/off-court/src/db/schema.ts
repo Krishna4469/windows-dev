@@ -119,3 +119,27 @@ export const leaderboardEntries = pgTable(
     uniqVenueMemberSport: unique().on(table.venue_id, table.member_id, table.sport),
   }),
 );
+
+export const tournaments = pgTable('tournaments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  event_id: uuid('event_id').notNull().references(() => events.id),
+  format: varchar('format', { length: 32 }).notNull().default('elimination'),
+  sport: varchar('sport', { length: 64 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('registration'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const tournamentMatches = pgTable('tournament_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tournament_id: uuid('tournament_id').notNull().references(() => tournaments.id),
+  round: integer('round').notNull(),
+  match_number: integer('match_number').notNull(),
+  player1_id: uuid('player1_id'),
+  player2_id: uuid('player2_id'),
+  player1_score: integer('player1_score'),
+  player2_score: integer('player2_score'),
+  winner_id: uuid('winner_id'),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  scheduled_at: timestamp('scheduled_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
