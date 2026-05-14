@@ -617,3 +617,22 @@ export const kitchenOrders = pgTable('kitchen_orders', {
   created_at: timestamp('created_at').defaultNow().notNull(),
   ready_at: timestamp('ready_at'),
 });
+
+export const environmentMetrics = pgTable('environment_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  metric_type: varchar('metric_type', { length: 32 }).notNull(),
+  value: numeric('value').notNull(),
+  recorded_date: date('recorded_date').notNull(),
+  notes: text('notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const sustainabilityTargets = pgTable('sustainability_targets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  metric_type: varchar('metric_type', { length: 32 }).notNull(),
+  target_value: numeric('target_value').notNull(),
+  period: varchar('period', { length: 16 }).notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

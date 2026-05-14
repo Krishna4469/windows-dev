@@ -21,6 +21,7 @@ import payrollRouter from "./routes/payroll.js";
 import complianceRouter from "./routes/compliance.js";
 import facilityRouter from "./routes/facility.js";
 import operationsRouter from "./routes/operations.js";
+import environmentRouter from "./routes/environment.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -58,6 +59,7 @@ app.use('/api/payroll', payrollRouter);
 app.use('/api/compliance', complianceRouter);
 app.use('/api/facility', facilityRouter);
 app.use('/api/ops', operationsRouter);
+app.use('/api/environment', environmentRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
