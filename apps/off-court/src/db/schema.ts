@@ -700,6 +700,29 @@ export const venueMetrics = pgTable('venue_metrics', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const checkinEvents = pgTable('checkin_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  member_id: uuid('member_id').notNull().references(() => members.id),
+  checkin_method: varchar('checkin_method', { length: 16 }).notNull(),
+  device_id: text('device_id'),
+  location_label: text('location_label'),
+  checked_in_at: timestamp('checked_in_at').defaultNow().notNull(),
+  checked_out_at: timestamp('checked_out_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const bleDevices = pgTable('ble_devices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  device_name: text('device_name').notNull(),
+  mac_address: varchar('mac_address', { length: 64 }).notNull().unique(),
+  location_label: text('location_label').notNull(),
+  zone: varchar('zone', { length: 64 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const otpRequests = pgTable('otp_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   phone: varchar('phone', { length: 32 }).notNull(),
