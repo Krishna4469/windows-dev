@@ -3,6 +3,7 @@ import { and, desc, eq, gte, lte, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { chartOfAccounts, journalEntries, journalLines } from '../db/schema.js';
 import { getPnL } from '../services/accounting.js';
+import { SAC_CODES, calculateGST, generateGSTR1, generateGSTR3B } from '../services/gst.js';
 
 const router = Router();
 
@@ -95,6 +96,79 @@ router.get('/journal', async (req: Request, res: Response): Promise<void> => {
   }));
 
   res.json({ entries: result, page: pageNum });
+});
+
+// GET /api/finance/gst/sac-codes
+router.get('/gst/sac-codes', (_req: Request, res: Response): void => {
+  const codes = Object.entries(SAC_CODES).map(([serviceType, entry]) => ({
+    service_type: serviceType,
+    sac_code:     entry.sac,
+    rate:         entry.rate,
+    label:        entry.label,
+  }));
+  res.json(codes);
+});
+
+// GET /api/finance/gst/gstr1?venue_id=&month=&year=
+router.get('/gst/gstr1', async (req: Request, res: Response): Promise<void> => {
+  const { venue_id, month, year } = req.query;
+
+  if (typeof venue_id !== 'string' || typeof month !== 'string' || typeof year !== 'string') {
+    res.status(400).json({ error: 'venue_id, month, year query params are required' });
+    return;
+  }
+
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+  if (isNaN(m) || m < 1 || m > 12 || isNaN(y)) {
+    res.status(400).json({ error: 'month must be 1-12 and year must be a valid number' });
+    return;
+  }
+
+  const report = await generateGSTR1(venue_id, m, y);
+  res.json(report);
+});
+
+// GET /api/finance/gst/gstr3b?venue_id=&month=&year=
+router.get('/gst/gstr3b', async (req: Request, res: Response): Promise<void> => {
+  const { venue_id, month, year } = req.query;
+
+  if (typeof venue_id !== 'string' || typeof month !== 'string' || typeof year !== 'string') {
+    res.status(400).json({ error: 'venue_id, month, year query params are required' });
+    return;
+  }
+
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+  if (isNaN(m) || m < 1 || m > 12 || isNaN(y)) {
+    res.status(400).json({ error: 'month must be 1-12 and year must be a valid number' });
+    return;
+  }
+
+  const summary = await generateGSTR3B(venue_id, m, y);
+  res.json(summary);
+});
+
+// POST /api/finance/gst/calculate  body: { amount, service_type }
+router.post('/gst/calculate', (req: Request, res: Response): void => {
+  const { amount, service_type } = req.body as { amount?: unknown; service_type?: unknown };
+
+  if (typeof amount !== 'number' || typeof service_type !== 'string') {
+    res.status(400).json({ error: 'amount (number) and service_type (string) are required' });
+    return;
+  }
+
+  if (amount < 0) {
+    res.status(400).json({ error: 'amount must be non-negative' });
+    return;
+  }
+
+  if (!SAC_CODES[service_type]) {
+    res.status(400).json({ error: `Unknown service_type. Valid values: ${Object.keys(SAC_CODES).join(', ')}` });
+    return;
+  }
+
+  res.json(calculateGST(amount, service_type));
 });
 
 export default router;
