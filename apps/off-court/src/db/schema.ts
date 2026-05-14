@@ -723,6 +723,27 @@ export const bleDevices = pgTable('ble_devices', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const staffClockinEvents = pgTable('staff_clockin_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  staff_id: uuid('staff_id').notNull().references(() => staffMembers.id),
+  clockin_method: varchar('clockin_method', { length: 16 }).notNull(),
+  zone: varchar('zone', { length: 64 }),
+  confidence: numeric('confidence'),
+  device_id: text('device_id'),
+  clocked_in_at: timestamp('clocked_in_at').defaultNow().notNull(),
+  clocked_out_at: timestamp('clocked_out_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const staffFaceProfiles = pgTable('staff_face_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  staff_id: uuid('staff_id').notNull().references(() => staffMembers.id),
+  embedding_vector: jsonb('embedding_vector').notNull(),
+  enrolled_at: timestamp('enrolled_at').defaultNow().notNull(),
+  is_active: boolean('is_active').notNull().default(true),
+});
+
 export const otpRequests = pgTable('otp_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   phone: varchar('phone', { length: 32 }).notNull(),
