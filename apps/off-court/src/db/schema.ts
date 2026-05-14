@@ -580,3 +580,40 @@ export const facilityAlerts = pgTable('facility_alerts', {
   acknowledged_by: uuid('acknowledged_by'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const housekeepingTasks = pgTable('housekeeping_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  room_id: uuid('room_id').references(() => rooms.id),
+  task_type: varchar('task_type', { length: 32 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  assigned_to: uuid('assigned_to'),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  completed_at: timestamp('completed_at'),
+  notes: text('notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const valetRequests = pgTable('valet_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  member_id: uuid('member_id').notNull(),
+  vehicle_number: text('vehicle_number').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('requested'),
+  parking_slot: text('parking_slot'),
+  requested_at: timestamp('requested_at').defaultNow().notNull(),
+  collected_at: timestamp('collected_at'),
+});
+
+export const kitchenOrders = pgTable('kitchen_orders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  order_type: varchar('order_type', { length: 32 }).notNull(),
+  items: jsonb('items').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  table_number: text('table_number'),
+  member_id: uuid('member_id'),
+  total_credits: numeric('total_credits').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  ready_at: timestamp('ready_at'),
+});
