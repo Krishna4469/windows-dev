@@ -672,3 +672,30 @@ export const campaignLogs = pgTable('campaign_logs', {
   sent_at: timestamp('sent_at').notNull(),
   error_message: text('error_message'),
 });
+
+export const franchiseVenues = pgTable('franchise_venues', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  franchisor_id: uuid('franchisor_id').notNull(),
+  venue_name: text('venue_name').notNull(),
+  city: text('city').notNull(),
+  country: varchar('country', { length: 64 }).notNull().default('India'),
+  operator_name: text('operator_name').notNull(),
+  operator_phone: varchar('operator_phone', { length: 32 }).notNull(),
+  launch_date: date('launch_date'),
+  status: varchar('status', { length: 32 }).notNull().default('prospect'),
+  monthly_fee_inr: numeric('monthly_fee_inr').notNull(),
+  revenue_share_pct: numeric('revenue_share_pct').notNull().default('8'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const venueMetrics = pgTable('venue_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull().references(() => franchiseVenues.id),
+  metric_date: date('metric_date').notNull(),
+  total_members: integer('total_members').notNull().default(0),
+  active_members: integer('active_members').notNull().default(0),
+  monthly_revenue_inr: numeric('monthly_revenue_inr').notNull().default('0'),
+  court_utilisation_pct: numeric('court_utilisation_pct').notNull().default('0'),
+  nps_score: numeric('nps_score'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});

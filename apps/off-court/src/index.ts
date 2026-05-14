@@ -23,6 +23,7 @@ import facilityRouter from "./routes/facility.js";
 import operationsRouter from "./routes/operations.js";
 import environmentRouter from "./routes/environment.js";
 import marketingRouter from "./routes/marketing.js";
+import franchiseRouter from "./routes/franchise.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -62,6 +63,7 @@ app.use('/api/facility', facilityRouter);
 app.use('/api/ops', operationsRouter);
 app.use('/api/environment', environmentRouter);
 app.use('/api/marketing', marketingRouter);
+app.use('/api/franchise', franchiseRouter);
 
 io.on("connection", (socket) => {
   console.log("client connected:", socket.id);
