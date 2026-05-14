@@ -1,7 +1,13 @@
 import { Router, type Request, type Response } from 'express';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { crmLeads, crmLifecycleEvents } from '../db/schema.js';
+import {
+  crmLeads,
+  crmLifecycleEvents,
+  corporateAccounts,
+  sponsorAccounts,
+  sponsorActivations,
+} from '../db/schema.js';
 
 const router = Router();
 
@@ -172,6 +178,295 @@ router.get('/leads/:id/timeline', async (req: Request, res: Response): Promise<v
     .orderBy(desc(crmLifecycleEvents.created_at));
 
   res.json({ lead, events });
+});
+
+// ── Corporate ────────────────────────────────────────────────────────────────
+
+const VALID_MEMBERSHIP_TYPES = ['bronze', 'silver', 'gold', 'platinum'] as const;
+const VALID_CORP_STATUSES = ['prospect', 'active', 'inactive', 'churned'] as const;
+const VALID_SPONSORSHIP_TYPES = [
+  'court-naming',
+  'event',
+  'digital',
+  'apparel',
+  'food-beverage',
+] as const;
+
+// GET /corporate
+router.get('/corporate', async (req: Request, res: Response): Promise<void> => {
+  const { status } = req.query;
+
+  const accounts = await db
+    .select()
+    .from(corporateAccounts)
+    .where(typeof status === 'string' ? eq(corporateAccounts.status, status) : undefined)
+    .orderBy(desc(corporateAccounts.created_at));
+
+  res.json(accounts);
+});
+
+// POST /corporate
+interface CreateCorporateBody {
+  venue_id: string;
+  company_name: string;
+  contact_name: string;
+  contact_phone: string;
+  contact_email: string;
+  employee_count?: number;
+  membership_type?: string;
+  monthly_credits?: number;
+  notes?: string;
+}
+
+router.post('/corporate', async (req: Request, res: Response): Promise<void> => {
+  const {
+    venue_id,
+    company_name,
+    contact_name,
+    contact_phone,
+    contact_email,
+    employee_count,
+    membership_type,
+    monthly_credits,
+    notes,
+  } = req.body as CreateCorporateBody;
+
+  if (!venue_id || !company_name || !contact_name || !contact_phone || !contact_email) {
+    res
+      .status(400)
+      .json({ error: 'venue_id, company_name, contact_name, contact_phone, contact_email are required' });
+    return;
+  }
+
+  if (
+    membership_type !== undefined &&
+    !(VALID_MEMBERSHIP_TYPES as readonly string[]).includes(membership_type)
+  ) {
+    res
+      .status(400)
+      .json({ error: `membership_type must be one of: ${VALID_MEMBERSHIP_TYPES.join(', ')}` });
+    return;
+  }
+
+  const [account] = await db
+    .insert(corporateAccounts)
+    .values({
+      venue_id,
+      company_name,
+      contact_name,
+      contact_phone,
+      contact_email,
+      employee_count: employee_count ?? 0,
+      membership_type: membership_type ?? 'bronze',
+      monthly_credits: monthly_credits ?? 0,
+      notes: notes ?? null,
+    })
+    .returning();
+
+  res.status(201).json(account);
+});
+
+// PUT /corporate/:id
+interface UpdateCorporateBody {
+  status?: string;
+  notes?: string;
+}
+
+router.put('/corporate/:id', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+  const { status, notes } = req.body as UpdateCorporateBody;
+
+  if (
+    status !== undefined &&
+    !(VALID_CORP_STATUSES as readonly string[]).includes(status)
+  ) {
+    res
+      .status(400)
+      .json({ error: `status must be one of: ${VALID_CORP_STATUSES.join(', ')}` });
+    return;
+  }
+
+  if (status === undefined && notes === undefined) {
+    res.status(400).json({ error: 'Provide at least one of: status, notes' });
+    return;
+  }
+
+  const setClause: { status?: string; notes?: string } = {};
+  if (status !== undefined) setClause.status = status;
+  if (notes !== undefined) setClause.notes = notes;
+
+  const [account] = await db
+    .update(corporateAccounts)
+    .set(setClause)
+    .where(eq(corporateAccounts.id, id))
+    .returning();
+
+  if (!account) {
+    res.status(404).json({ error: 'Corporate account not found' });
+    return;
+  }
+
+  res.json(account);
+});
+
+// ── Sponsors ──────────────────────────────────────────────────────────────────
+
+// GET /sponsors
+router.get('/sponsors', async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db
+    .select({
+      id: sponsorAccounts.id,
+      venue_id: sponsorAccounts.venue_id,
+      brand_name: sponsorAccounts.brand_name,
+      contact_name: sponsorAccounts.contact_name,
+      contact_email: sponsorAccounts.contact_email,
+      sponsorship_type: sponsorAccounts.sponsorship_type,
+      value_inr: sponsorAccounts.value_inr,
+      start_date: sponsorAccounts.start_date,
+      end_date: sponsorAccounts.end_date,
+      deliverables: sponsorAccounts.deliverables,
+      status: sponsorAccounts.status,
+      created_at: sponsorAccounts.created_at,
+      activations_count: count(sponsorActivations.id),
+    })
+    .from(sponsorAccounts)
+    .leftJoin(sponsorActivations, eq(sponsorActivations.sponsor_id, sponsorAccounts.id))
+    .groupBy(sponsorAccounts.id)
+    .orderBy(desc(sponsorAccounts.created_at));
+
+  res.json(rows);
+});
+
+// POST /sponsors
+interface CreateSponsorBody {
+  venue_id: string;
+  brand_name: string;
+  contact_name: string;
+  contact_email: string;
+  sponsorship_type: string;
+  value_inr: number;
+  start_date: string;
+  end_date: string;
+  deliverables?: unknown;
+}
+
+router.post('/sponsors', async (req: Request, res: Response): Promise<void> => {
+  const {
+    venue_id,
+    brand_name,
+    contact_name,
+    contact_email,
+    sponsorship_type,
+    value_inr,
+    start_date,
+    end_date,
+    deliverables,
+  } = req.body as CreateSponsorBody;
+
+  if (
+    !venue_id ||
+    !brand_name ||
+    !contact_name ||
+    !contact_email ||
+    !sponsorship_type ||
+    !value_inr ||
+    !start_date ||
+    !end_date
+  ) {
+    res.status(400).json({
+      error:
+        'venue_id, brand_name, contact_name, contact_email, sponsorship_type, value_inr, start_date, end_date are required',
+    });
+    return;
+  }
+
+  if (!(VALID_SPONSORSHIP_TYPES as readonly string[]).includes(sponsorship_type)) {
+    res
+      .status(400)
+      .json({ error: `sponsorship_type must be one of: ${VALID_SPONSORSHIP_TYPES.join(', ')}` });
+    return;
+  }
+
+  const [sponsor] = await db
+    .insert(sponsorAccounts)
+    .values({
+      venue_id,
+      brand_name,
+      contact_name,
+      contact_email,
+      sponsorship_type,
+      value_inr: String(value_inr),
+      start_date,
+      end_date,
+      deliverables: deliverables ?? [],
+    })
+    .returning();
+
+  res.status(201).json(sponsor);
+});
+
+// POST /sponsors/:id/activations
+interface CreateActivationBody {
+  activation_type: string;
+  description: string;
+  scheduled_at: string;
+}
+
+router.post('/sponsors/:id/activations', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+  const { activation_type, description, scheduled_at } = req.body as CreateActivationBody;
+
+  if (!activation_type || !description || !scheduled_at) {
+    res
+      .status(400)
+      .json({ error: 'activation_type, description, scheduled_at are required' });
+    return;
+  }
+
+  const [sponsor] = await db
+    .select()
+    .from(sponsorAccounts)
+    .where(eq(sponsorAccounts.id, id));
+
+  if (!sponsor) {
+    res.status(404).json({ error: 'Sponsor not found' });
+    return;
+  }
+
+  const [activation] = await db
+    .insert(sponsorActivations)
+    .values({
+      sponsor_id: id,
+      activation_type,
+      description,
+      scheduled_at: new Date(scheduled_at),
+    })
+    .returning();
+
+  res.status(201).json(activation);
+});
+
+// GET /sponsors/:id/activations
+router.get('/sponsors/:id/activations', async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+
+  const [sponsor] = await db
+    .select()
+    .from(sponsorAccounts)
+    .where(eq(sponsorAccounts.id, id));
+
+  if (!sponsor) {
+    res.status(404).json({ error: 'Sponsor not found' });
+    return;
+  }
+
+  const activations = await db
+    .select()
+    .from(sponsorActivations)
+    .where(eq(sponsorActivations.sponsor_id, id))
+    .orderBy(desc(sponsorActivations.created_at));
+
+  res.json(activations);
 });
 
 export default router;

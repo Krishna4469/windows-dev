@@ -322,3 +322,43 @@ export const crmLifecycleEvents = pgTable('crm_lifecycle_events', {
   created_by: uuid('created_by').notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const corporateAccounts = pgTable('corporate_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  company_name: text('company_name').notNull(),
+  contact_name: text('contact_name').notNull(),
+  contact_phone: varchar('contact_phone', { length: 32 }).notNull(),
+  contact_email: text('contact_email').notNull(),
+  employee_count: integer('employee_count').notNull().default(0),
+  membership_type: varchar('membership_type', { length: 32 }).notNull().default('bronze'),
+  monthly_credits: integer('monthly_credits').notNull().default(0),
+  status: varchar('status', { length: 32 }).notNull().default('prospect'),
+  notes: text('notes'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const sponsorAccounts = pgTable('sponsor_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  brand_name: text('brand_name').notNull(),
+  contact_name: text('contact_name').notNull(),
+  contact_email: text('contact_email').notNull(),
+  sponsorship_type: varchar('sponsorship_type', { length: 64 }).notNull(),
+  value_inr: numeric('value_inr').notNull(),
+  start_date: date('start_date').notNull(),
+  end_date: date('end_date').notNull(),
+  deliverables: jsonb('deliverables').notNull().default([]),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const sponsorActivations = pgTable('sponsor_activations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sponsor_id: uuid('sponsor_id').notNull().references(() => sponsorAccounts.id),
+  activation_type: varchar('activation_type', { length: 64 }).notNull(),
+  description: text('description').notNull(),
+  scheduled_at: timestamp('scheduled_at').notNull(),
+  completed: boolean('completed').notNull().default(false),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
