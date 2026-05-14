@@ -143,3 +143,23 @@ export const tournamentMatches = pgTable('tournament_matches', {
   scheduled_at: timestamp('scheduled_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const floors = pgTable('floors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  level_number: integer('level_number').notNull(),
+  name: text('name').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const rooms = pgTable('rooms', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  venue_id: uuid('venue_id').notNull(),
+  floor_id: uuid('floor_id').notNull().references(() => floors.id),
+  name: text('name').notNull(),
+  room_type: varchar('room_type', { length: 32 }).notNull(),
+  sport: varchar('sport', { length: 64 }),
+  capacity: integer('capacity').notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
