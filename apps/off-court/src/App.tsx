@@ -1,6 +1,7 @@
 import { Route, Switch, Link, useLocation } from "wouter";
 import { EventsPage } from "./components/EventsPage";
 import { EventDetail } from "./components/EventDetail";
+import { VenueTwin } from "./components/VenueTwin";
 
 function Home() {
   return <div className="p-4 text-white">Home</div>;
@@ -10,9 +11,6 @@ function Book() {
   return <div className="p-4 text-white">Book a Court</div>;
 }
 
-function Twin() {
-  return <div className="p-4 text-white">Twin</div>;
-}
 
 function Profile() {
   return <div className="p-4 text-white">Profile</div>;
@@ -60,7 +58,7 @@ export function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/book" component={Book} />
-          <Route path="/twin" component={Twin} />
+          <Route path="/twin" component={VenueTwin} />
           <Route path="/events/:id" component={EventDetail} />
           <Route path="/events" component={EventsPage} />
           <Route path="/profile" component={Profile} />
