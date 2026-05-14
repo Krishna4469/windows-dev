@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { staffMembers, attendanceRecords, payrollRuns } from '../db/schema.js';
 import { generatePayrollRun, generateBankFile } from '../services/payroll.js';
@@ -168,6 +168,38 @@ router.get('/runs/:id/bank-file', async (req: Request, res: Response): Promise<v
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="payroll-${id}.csv"`);
   res.send(csv);
+});
+
+// GET /api/payroll/attendance-summary?venue_id=&date=
+router.get('/attendance-summary', async (req: Request, res: Response): Promise<void> => {
+  const { venue_id, date } = req.query;
+  if (typeof venue_id !== 'string') {
+    res.status(400).json({ error: 'venue_id query param required' });
+    return;
+  }
+
+  const staff = await db
+    .select({ id: staffMembers.id })
+    .from(staffMembers)
+    .where(and(eq(staffMembers.venue_id, venue_id), eq(staffMembers.status, 'active')));
+
+  if (staff.length === 0) {
+    res.json({ present: 0, absent: 0, total: 0 });
+    return;
+  }
+
+  const staffIds   = staff.map((s) => s.id);
+  const targetDate = typeof date === 'string' ? date : new Date().toISOString().slice(0, 10);
+
+  const records = await db
+    .select({ status: attendanceRecords.status })
+    .from(attendanceRecords)
+    .where(and(inArray(attendanceRecords.staff_id, staffIds), eq(attendanceRecords.date, targetDate)));
+
+  const present = records.filter((r) => r.status === 'present' || r.status === 'half-day').length;
+  const absent  = records.filter((r) => r.status === 'absent').length;
+
+  res.json({ present, absent, total: staff.length });
 });
 
 export default router;

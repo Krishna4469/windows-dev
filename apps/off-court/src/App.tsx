@@ -2,6 +2,8 @@ import { Route, Switch, Link, useLocation } from "wouter";
 import { EventsPage } from "./components/EventsPage";
 import { EventDetail } from "./components/EventDetail";
 import { VenueTwin } from "./components/VenueTwin";
+import FinancialDashboard from "./components/FinancialDashboard";
+import GSTDashboard from "./components/GSTDashboard";
 
 function Home() {
   return <div className="p-4 text-white">Home</div>;
@@ -17,11 +19,11 @@ function Profile() {
 }
 
 const tabs = [
-  { path: "/", label: "Home", icon: "🏠" },
-  { path: "/book", label: "Book", icon: "📅" },
-  { path: "/twin", label: "Twin", icon: "⚡" },
-  { path: "/events", label: "Events", icon: "🏆" },
-  { path: "/profile", label: "Profile", icon: "👤" },
+  { path: "/",        label: "Home",    icon: "🏠" },
+  { path: "/book",    label: "Book",    icon: "📅" },
+  { path: "/twin",    label: "Twin",    icon: "⚡" },
+  { path: "/events",  label: "Events",  icon: "🏆" },
+  { path: "/finance", label: "Finance", icon: "💰" },
 ] as const;
 
 function BottomNav() {
@@ -62,6 +64,8 @@ export function App() {
           <Route path="/events/:id" component={EventDetail} />
           <Route path="/events" component={EventsPage} />
           <Route path="/profile" component={Profile} />
+          <Route path="/finance">{() => <FinancialDashboard />}</Route>
+          <Route path="/gst">{() => <GSTDashboard venueId="demo-venue" />}</Route>
         </Switch>
       </main>
       <BottomNav />

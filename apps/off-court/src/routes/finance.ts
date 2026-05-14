@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { and, desc, eq, gte, lte, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { chartOfAccounts, journalEntries, journalLines } from '../db/schema.js';
+
 import { getPnL } from '../services/accounting.js';
 import { SAC_CODES, calculateGST, generateGSTR1, generateGSTR3B } from '../services/gst.js';
 
@@ -169,6 +170,34 @@ router.post('/gst/calculate', (req: Request, res: Response): void => {
   }
 
   res.json(calculateGST(amount, service_type));
+});
+
+// GET /api/finance/deferred-credits?venue_id=
+router.get('/deferred-credits', async (req: Request, res: Response): Promise<void> => {
+  const { venue_id } = req.query;
+  if (typeof venue_id !== 'string') {
+    res.status(400).json({ error: 'venue_id query param required' });
+    return;
+  }
+
+  const [account] = await db
+    .select({ id: chartOfAccounts.id })
+    .from(chartOfAccounts)
+    .where(and(eq(chartOfAccounts.venue_id, venue_id), eq(chartOfAccounts.account_code, 'LIA-001')))
+    .limit(1);
+
+  if (!account) {
+    res.json({ balance: 0 });
+    return;
+  }
+
+  const lines = await db
+    .select({ debit: journalLines.debit, credit: journalLines.credit })
+    .from(journalLines)
+    .where(eq(journalLines.account_id, account.id));
+
+  const balance = lines.reduce((s, l) => s + parseFloat(l.credit) - parseFloat(l.debit), 0);
+  res.json({ balance: Math.round(balance * 100) / 100 });
 });
 
 export default router;
